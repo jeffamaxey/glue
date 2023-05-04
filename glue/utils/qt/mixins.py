@@ -23,8 +23,7 @@ class GlueItemWidget(object):
         """
         Return the list of MIME Types supported for this object.
         """
-        types = [self.SUPPORTED_MIME_TYPE]
-        return types
+        return [self.SUPPORTED_MIME_TYPE]
 
     def mimeData(self, selected_items):
         """

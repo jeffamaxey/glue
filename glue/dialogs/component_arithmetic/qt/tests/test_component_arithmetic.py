@@ -96,7 +96,7 @@ class TestArithmeticEditorWidget:
         self.data2 = Data(a=[3, 4, 1], b=[1.5, -2.0, 3.5], c=['y', 'e', 'r'])
 
         # Add a derived component so that we can test how we deal with existing ones
-        components = dict((cid.label, cid) for cid in self.data2.components)
+        components = {cid.label: cid for cid in self.data2.components}
         pc = ParsedCommand('{a}', components)
         link = ParsedComponentLink(ComponentID('d'), pc)
         self.data2.add_component_link(link)

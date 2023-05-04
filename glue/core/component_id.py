@@ -15,14 +15,13 @@ __all__ = ['ComponentID', 'PixelComponentID', 'ComponentIDDict', 'ComponentIDLis
 class ComponentIDList(list):
 
     def __contains__(self, cid):
-        if isinstance(cid, str):
-            for c in self:
-                if cid == c.label:
-                    return True
-            else:
-                return False
-        else:
+        if not isinstance(cid, str):
             return list.__contains__(self, cid)
+        for c in self:
+            if cid == c.label:
+                return True
+        else:
+            return False
 
 
 class ComponentIDDict(object):
@@ -33,8 +32,7 @@ class ComponentIDDict(object):
     def __getitem__(self, key):
         result = self.data.find_component_id(key)
         if result is None:
-            raise KeyError("ComponentID not found or not unique: %s"
-                           % key)
+            raise KeyError(f"ComponentID not found or not unique: {key}")
         return result
 
 

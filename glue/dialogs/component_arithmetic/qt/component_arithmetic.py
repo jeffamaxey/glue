@@ -45,10 +45,7 @@ class ArithmeticEditorWidget(QtWidgets.QDialog):
             for cid in data.derived_components:
                 comp = data.get_component(cid)
                 if isinstance(comp.link, ParsedComponentLink):
-                    comp_state = {}
-                    comp_state['cid'] = cid
-                    comp_state['label'] = cid.label
-                    comp_state['equation'] = comp.link._parsed
+                    comp_state = {'cid': cid, 'label': cid.label, 'equation': comp.link._parsed}
                     self._state[data][cid] = comp_state
                     self._components_derived[data].append(cid)
 
@@ -100,10 +97,7 @@ class ArithmeticEditorWidget(QtWidgets.QDialog):
 
         self.list.blockSignals(True)
 
-        mapping = {}
-        for cid in self.data.components:
-            mapping[cid] = cid.label
-
+        mapping = {cid: cid.label for cid in self.data.components}
         self.list.clear()
         for cid in self._components_derived[self.data]:
             label = self._state[self.data][cid]['label']
@@ -123,7 +117,7 @@ class ArithmeticEditorWidget(QtWidgets.QDialog):
         # we can check which ones are duplicates
         labels = [c.label for c in self._components_other[self.data]]
         labels.extend([c['label'] for c in self._state[self.data].values()])
-        if len(labels) == 0:
+        if not labels:
             return
         label_count = Counter(labels)
 
@@ -180,11 +174,7 @@ class ArithmeticEditorWidget(QtWidgets.QDialog):
 
     def _add_derived_component(self, *args):
 
-        comp_state = {}
-        comp_state['cid'] = ComponentID('')
-        comp_state['label'] = ''
-        comp_state['equation'] = None
-
+        comp_state = {'cid': ComponentID(''), 'label': '', 'equation': None}
         self._components_derived[self.data].append(comp_state['cid'])
         self._state[self.data][comp_state['cid']] = comp_state
 
@@ -254,7 +244,7 @@ class ArithmeticEditorWidget(QtWidgets.QDialog):
             cids_other = self._components_other[data]
             cids_all = cids_other + cids_derived
             cids_existing = data.components
-            components = dict((cid.uuid, cid) for cid in data.components)
+            components = {cid.uuid: cid for cid in data.components}
 
             # First deal with renaming of components
             for cid_new in cids_derived:
@@ -264,7 +254,7 @@ class ArithmeticEditorWidget(QtWidgets.QDialog):
 
             # Second deal with the removal of components
             for cid_old in cids_existing:
-                if not any(cid_old is cid_new for cid_new in cids_all):
+                if all(cid_old is not cid_new for cid_new in cids_all):
                     data.remove_component(cid_old)
 
             # Third, update/add arithmetic expressions as needed

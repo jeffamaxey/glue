@@ -7,10 +7,9 @@ def python_export_profile_layer(layer, *args):
     if len(layer.mpl_artists) == 0 or not layer.enabled or not layer.visible:
         return [], None
 
-    script = ""
     imports = ["import numpy as np"]
 
-    script += "# Calculate the profile of the data\n"
+    script = "" + "# Calculate the profile of the data\n"
     script += "profile_axis = {0}\n".format(layer._viewer_state.x_att_pixel.axis)
     script += "collapsed_axes = tuple(i for i in range(layer_data.ndim) if i != profile_axis)\n"
     if isinstance(layer.state.layer, Subset):

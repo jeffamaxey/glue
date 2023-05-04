@@ -54,10 +54,9 @@ class BaseFitter1D(object):
         y = self.predict(fit_result, x)
         if normalize is not None:
             y = normalize(y)
-        result = axes.plot(x, y, color,
-                           lw=linewidth, alpha=alpha,
-                           scalex=False, scaley=False)
-        return result
+        return axes.plot(
+            x, y, color, lw=linewidth, alpha=alpha, scalex=False, scaley=False
+        )
 
     def _sigma_to_weights(self, dy):
         if dy is not None:
@@ -76,7 +75,7 @@ class BaseFitter1D(object):
         for typ in type(self).mro():
             result.extend(k for k, v in typ.__dict__.items()
                           if isinstance(v, Option))
-        return dict((o, getattr(self, o)) for o in result)
+        return {o: getattr(self, o) for o in result}
 
     def summarize(self, fit_result, x, y, dy=None):
         """
@@ -222,7 +221,7 @@ class AstropyFitter1D(BaseFitter1D):
         if self.model_cls is None or self.fitting_cls is None:
             raise NotImplementedError("Model or fitting class is unspecified.")
 
-        params = dict((k, v['value']) for k, v in constraints.items())
+        params = {k: v['value'] for k, v in constraints.items()}
 
         # update unset parameters with guesses from data
         for k, v in self.parameter_guesses(x, y, dy).items():

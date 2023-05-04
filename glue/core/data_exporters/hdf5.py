@@ -49,16 +49,15 @@ def hdf5_writer(filename, data, components=None):
         if mask is not None:
             if values.ndim == 1:
                 values = values[mask]
+            elif values.dtype.kind == 'f':
+                values[~mask] = np.nan
+            elif values.dtype.kind == 'i':
+                values[~mask] = 0
+            elif values.dtype.kind == 'S':
+                values[~mask] = ''
             else:
-                if values.dtype.kind == 'f':
-                    values[~mask] = np.nan
-                elif values.dtype.kind == 'i':
-                    values[~mask] = 0
-                elif values.dtype.kind == 'S':
-                    values[~mask] = ''
-                else:
-                    warnings.warn("Unknown data type in HDF5 export: {0}".format(values.dtype))
-                    continue
+                warnings.warn("Unknown data type in HDF5 export: {0}".format(values.dtype))
+                continue
 
         f.create_dataset(cid.label, data=values)
 

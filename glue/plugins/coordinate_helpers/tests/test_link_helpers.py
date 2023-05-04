@@ -41,10 +41,22 @@ def test_conversion(conv_class, expected):
     check_link(result[3], [lon2, lat2], lat1)
 
     # Check string representation
-    assert str(result[0]) == "lon_out <- " + conv_class.__name__ + ".forwards_1(lon_in, lat_in)"
-    assert str(result[1]) == "lat_out <- " + conv_class.__name__ + ".forwards_2(lon_in, lat_in)"
-    assert str(result[2]) == "lon_in <- " + conv_class.__name__ + ".backwards_1(lon_out, lat_out)"
-    assert str(result[3]) == "lat_in <- " + conv_class.__name__ + ".backwards_2(lon_out, lat_out)"
+    assert (
+        str(result[0])
+        == f"lon_out <- {conv_class.__name__}.forwards_1(lon_in, lat_in)"
+    )
+    assert (
+        str(result[1])
+        == f"lat_out <- {conv_class.__name__}.forwards_2(lon_in, lat_in)"
+    )
+    assert (
+        str(result[2])
+        == f"lon_in <- {conv_class.__name__}.backwards_1(lon_out, lat_out)"
+    )
+    assert (
+        str(result[3])
+        == f"lat_in <- {conv_class.__name__}.backwards_2(lon_out, lat_out)"
+    )
 
     # Check numerical accuracy
 

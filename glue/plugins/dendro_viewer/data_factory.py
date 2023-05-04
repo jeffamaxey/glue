@@ -96,13 +96,10 @@ def load_dendro(filename):
     height = np.array([dg[i].height for i in structs])
     pk = np.array([dg[i].get_peak(True)[1] for i in structs])
 
-    dendro = Data(parent=parent,
-                  height=height,
-                  peak=pk,
-                  label="{} [dendrogram]".format(label))
+    dendro = Data(
+        parent=parent, height=height, peak=pk, label=f"{label} [dendrogram]"
+    )
 
-    im = Data(intensity=dg.data,
-              structure=dg.index_map,
-              label="{} [data]".format(label))
+    im = Data(intensity=dg.data, structure=dg.index_map, label=f"{label} [data]")
     im.join_on_key(dendro, 'structure', dendro.pixel_component_ids[0])
     return [dendro, im]

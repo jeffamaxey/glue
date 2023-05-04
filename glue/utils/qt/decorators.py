@@ -77,7 +77,7 @@ class messagebox_on_error(object):
         detail = ''.join(traceback.format_exception(exc_type, exc_val, tb))
         if len(m) > 500:
             detail = "Full message:\n\n%s\n\n%s" % (m, detail)
-            m = m[:500] + '...'
+            m = f'{m[:500]}...'
 
         from qtpy import QtWidgets
         from qtpy.QtCore import Qt

@@ -16,10 +16,10 @@ class TestMime():
 
     def test_formats(self):
         d = mime.PyMimeData()
-        assert set(d.formats()) == set([INSTANCE_MIME_TYPE])
+        assert set(d.formats()) == {INSTANCE_MIME_TYPE}
 
         d = mime.PyMimeData(**{'text/plain': 'hello'})
-        assert set(d.formats()) == set([INSTANCE_MIME_TYPE, 'text/plain'])
+        assert set(d.formats()) == {INSTANCE_MIME_TYPE, 'text/plain'}
 
     def test_empty_has_format(self):
         d = mime.PyMimeData()

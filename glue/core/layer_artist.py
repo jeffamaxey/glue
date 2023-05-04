@@ -145,11 +145,11 @@ class LayerArtistBase(PropertySetMixin, metaclass=ABCMeta):
         ----------
         attributes : sequence of ComponentIDs
         """
-        if len(attributes) == 0:
+        if not attributes:
             self.disable('')
             return
 
-        datasets = ', '.join(sorted(set([cid.parent.label for cid in attributes])))
+        datasets = ', '.join(sorted({cid.parent.label for cid in attributes}))
         self.disable(DISABLED_LAYER_WARNING.format(datasets))
 
     def disable_incompatible_subset(self):
@@ -167,7 +167,7 @@ class LayerArtistBase(PropertySetMixin, metaclass=ABCMeta):
         """
         if self.enabled:
             return ''
-        return "Cannot visualize this layer: %s" % self._disabled_reason
+        return f"Cannot visualize this layer: {self._disabled_reason}"
 
     @property
     def layer(self):
@@ -229,11 +229,11 @@ class LayerArtistBase(PropertySetMixin, metaclass=ABCMeta):
             self._state = state
 
     def __str__(self):
-        return "%s for %s" % (self.__class__.__name__, self.layer.label)
+        return f"{self.__class__.__name__} for {self.layer.label}"
 
     def __gluestate__(self, context):
         # note, this doesn't yet have a restore method. Will rely on client
-        return dict((k, context.id(v)) for k, v in self.properties.items())
+        return {k: context.id(v) for k, v in self.properties.items()}
 
     __repr__ = __str__
 
@@ -264,10 +264,10 @@ class LayerArtistContainer(object):
         self.change_callbacks.append(func)
 
     def _duplicate(self, artist):
-        for a in self.artists:
-            if type(a) == type(artist) and a.layer is artist.layer:
-                return True
-        return False
+        return any(
+            type(a) == type(artist) and a.layer is artist.layer
+            for a in self.artists
+        )
 
     def append(self, artist):
         """Add a LayerArtist to this collection"""
@@ -321,7 +321,7 @@ class LayerArtistContainer(object):
     @property
     def layers(self):
         """A list of the unique layers in the container"""
-        return list(set([a.layer for a in self.artists]))
+        return list({a.layer for a in self.artists})
 
     @contextmanager
     def ignore_empty(self):

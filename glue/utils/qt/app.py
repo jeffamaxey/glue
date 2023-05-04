@@ -11,16 +11,7 @@ qapp = None
 
 
 def __get_font_size_offset():
-    if platform.system() == 'Darwin':
-        # On Mac, the fonts are generally too large compared to other
-        # applications, so we reduce the default here. In future we should
-        # make this a setting in the system preferences.
-        size_offset = 2
-    else:
-        # On other platforms, we reduce the font size by 1 point to save
-        # space too. Again, this should probably be a global setting.
-        size_offset = 1
-    return size_offset
+    return 2 if platform.system() == 'Darwin' else 1
 
 
 def process_events(wait=None):

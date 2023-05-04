@@ -139,10 +139,7 @@ class HistogramViewerState(MatplotlibDataViewerState):
             except IncompatibleAttribute:
                 pass
 
-        if len(categories) == 0:
-            return None
-        else:
-            return np.unique(np.hstack(categories))
+        return np.unique(np.hstack(categories)) if categories else None
 
     @property
     def x_kinds(self):

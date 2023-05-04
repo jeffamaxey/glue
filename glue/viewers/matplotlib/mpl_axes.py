@@ -58,11 +58,10 @@ def init_mpl(figure=None, axes=None, wcs=False, axes_factory=None, projection=No
         if wcs and WCSAxesSubplot is not None:
             _axes = WCSAxesSubplot(_figure, 111)
             _figure.add_axes(_axes)
+        elif axes_factory is None:
+            _axes = _figure.add_subplot(1, 1, 1, projection=projection)
         else:
-            if axes_factory is None:
-                _axes = _figure.add_subplot(1, 1, 1, projection=projection)
-            else:
-                _axes = axes_factory(_figure)
+            _axes = axes_factory(_figure)
 
     freeze_margins(_axes, margins=[1, 0.25, 0.50, 0.25])
 

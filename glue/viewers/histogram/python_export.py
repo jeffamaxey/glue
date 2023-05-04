@@ -9,7 +9,6 @@ def python_export_histogram_layer(layer, *args):
     if len(layer.mpl_artists) == 0 or not layer.enabled or not layer.visible:
         return [], None
 
-    script = ""
     imports = ["import numpy as np"]
 
     x = layer.layer[layer._viewer_state.x_att]
@@ -19,7 +18,7 @@ def python_export_histogram_layer(layer, *args):
     hist_x_min = layer._viewer_state.hist_x_min
     hist_x_max = layer._viewer_state.hist_x_max
 
-    script += "# Get main data values\n"
+    script = "" + "# Get main data values\n"
     script += "x = layer_data['{0}']\n\n".format(layer._viewer_state.x_att.label)
 
     script += "# Set up histogram bins\n"

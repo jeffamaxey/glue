@@ -209,11 +209,7 @@ def _slice_from_path(x, y, data, attribute, slc):
 
     from astropy.wcs import WCS
 
-    if isinstance(data.coords, WCS):
-        cube_wcs = data.coords
-    else:
-        cube_wcs = None
-
+    cube_wcs = data.coords if isinstance(data.coords, WCS) else None
     # transpose cube to (z, y, x, <whatever>)
     def _swap(x, s, i, j):
         x[i], x[j] = x[j], x[i]

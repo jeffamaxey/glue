@@ -87,8 +87,8 @@ class TestDependentAxes(object):
         result['CRPIX2'] = 1
         result['CDELT1'] = 1
         result['CDELT2'] = 1
-        result['CTYPE1'] = 'RA---%s' % proj
-        result['CTYPE2'] = 'DEC--%s' % proj
+        result['CTYPE1'] = f'RA---{proj}'
+        result['CTYPE2'] = f'DEC--{proj}'
         result['CRVAL1'] = 1
         result['CRVAL2'] = 1
         return result

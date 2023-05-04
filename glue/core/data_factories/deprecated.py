@@ -21,11 +21,7 @@ def extract_data_hdf5(filename, use_datasets='all'):
     # Read in all datasets
     datasets = extract_hdf5_datasets(filename)
 
-    # Only keep non-tabular datasets
-    remove = []
-    for key in datasets:
-        if datasets[key].dtype.fields is not None:
-            remove.append(key)
+    remove = [key for key in datasets if datasets[key].dtype.fields is not None]
     for key in remove:
         datasets.pop(key)
 
@@ -35,12 +31,7 @@ def extract_data_hdf5(filename, use_datasets='all'):
         if datasets[key].shape != reference_shape:
             raise Exception("Datasets are not all the same dimensions")
 
-    # Extract data
-    arrays = {}
-    for key in datasets:
-        arrays[key] = datasets[key]
-
-    return arrays
+    return {key: datasets[key] for key in datasets}
 
 
 def filter_hdulist_by_shape(hdulist, use_hdu='all'):
@@ -63,14 +54,12 @@ def filter_hdulist_by_shape(hdulist, use_hdu='all'):
     if use_hdu != 'all':
         hdulist = [hdulist[hdu] for hdu in use_hdu]
 
-    # Now only keep HDUs that are not tables or empty.
-    valid_hdus = []
-    for hdu in hdulist:
-        if (isinstance(hdu, fits.PrimaryHDU) or
-                isinstance(hdu, fits.ImageHDU)) and \
-                hdu.data is not None:
-            valid_hdus.append(hdu)
-
+    valid_hdus = [
+        hdu
+        for hdu in hdulist
+        if (isinstance(hdu, (fits.PrimaryHDU, fits.ImageHDU)))
+        and hdu.data is not None
+    ]
     # Check that dimensions of all HDU are the same
     # Allow for HDU's that have no data.
     reference_shape = valid_hdus[0].data.shape
@@ -95,12 +84,7 @@ def extract_data_fits(filename, use_hdu='all'):
     hdulist = fits.open(filename, ignore_blank=True)
     hdulist = filter_hdulist_by_shape(hdulist)
 
-    # Extract data
-    arrays = {}
-    for hdu in hdulist:
-        arrays[hdu.name] = hdu.data
-
-    return arrays
+    return {hdu.name: hdu.data for hdu in hdulist}
 
 
 def is_gridded_data(filename, **kwargs):
@@ -136,7 +120,7 @@ def gridded_data(filename, format='auto', **kwargs):
     elif is_hdf5(filename):
         arrays = extract_data_hdf5(filename, **kwargs)
     else:
-        raise Exception("Unkonwn format: %s" % format)
+        raise Exception(f"Unkonwn format: {format}")
 
     for component_name in arrays:
         comp = Component.autotyped(arrays[component_name])

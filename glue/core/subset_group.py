@@ -67,7 +67,7 @@ class GroupedSubset(Subset):
 
     @property
     def verbose_label(self):
-        return "%s (%s)" % (self.label, self.data.label)
+        return f"{self.label} ({self.data.label})"
 
     def __eq__(self, other):
         return other is self
@@ -98,11 +98,7 @@ class SubsetGroup(HubListener):
         """
         self.subsets = []
 
-        if subset_state is None:
-            self.subset_state = SubsetState()
-        else:
-            self.subset_state = subset_state
-
+        self.subset_state = SubsetState() if subset_state is None else subset_state
         self.label = label
 
         visual_args = {k: v for k, v in kwargs.items() if k in VisualAttributes.DEFAULT_ATTS}

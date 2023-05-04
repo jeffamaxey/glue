@@ -48,18 +48,14 @@ class LayerArtistModel(PythonListModel):
             return None
         if role == Qt.DecorationRole:
             art = self.artists[index.row()]
-            result = layer_artist_icon(art)
-            return result
+            return layer_artist_icon(art)
         if role == Qt.CheckStateRole:
             art = self.artists[index.row()]
-            result = Qt.Checked if art.visible and art.enabled else Qt.Unchecked
-            return result
+            return Qt.Checked if art.visible and art.enabled else Qt.Unchecked
         if role == Qt.ToolTipRole:
             art = self.artists[index.row()]
             if not art.enabled:
-                wrapped = textwrap.fill(art.disabled_message, break_long_words=False)
-                return wrapped
-
+                return textwrap.fill(art.disabled_message, break_long_words=False)
         return super(LayerArtistModel, self).data(index, role)
 
     def flags(self, index):
@@ -158,9 +154,7 @@ class LayerArtistModel(PythonListModel):
         if hasattr(artist, 'label'):
             return artist.label
         layer = artist.layer
-        if hasattr(layer, 'verbose_label'):
-            return layer.verbose_label
-        return layer.label
+        return layer.verbose_label if hasattr(layer, 'verbose_label') else layer.label
 
     def change_label(self, row, label):
         """ Reassign the labeel for whatever layer the artist manages"""

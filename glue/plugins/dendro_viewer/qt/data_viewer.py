@@ -80,9 +80,9 @@ class DendrogramViewer(MatplotlibDataViewer):
     @messagebox_on_error('Failed to add data')
     def add_data(self, data):
         if data.ndim != 1:
-            raise IncompatibleDataException("Only 1-D data can be added to "
-                                            "the dendrogram viewer (tried to add a {}-D "
-                                            "dataset)".format(data.ndim))
+            raise IncompatibleDataException(
+                f"Only 1-D data can be added to the dendrogram viewer (tried to add a {data.ndim}-D dataset)"
+            )
         return super(DendrogramViewer, self).add_data(data)
 
     # TODO: move some of the ROI stuff to state class?
@@ -108,34 +108,30 @@ class DendrogramViewer(MatplotlibDataViewer):
         if len(self.layers) == 0:
             return
 
-        if isinstance(roi, PointROI):
-
-            x, y = roi.x, roi.y
-
-            xs, ys = self.state._layout.xy
-            parent_ys = ys[1::3]
-            xs, ys = xs[::3], ys[::3]
-
-            delt = np.abs(x - xs)
-            delt[y > ys] = np.nan
-            delt[y < parent_ys] = np.nan
-
-            if np.isfinite(delt).any():
-                select = np.nanargmin(delt)
-                if self.state.select_substruct:
-                    parent = self.state.reference_data[self.state.parent_att]
-                    select = _substructures(parent, select)
-                select = np.asarray(select, dtype=np.int)
-            else:
-                select = np.array([], dtype=np.int)
-
-            subset_state = CategorySubsetState(self.state.reference_data.pixel_component_ids[0], select)
-
-            self.apply_subset_state(subset_state)
-
-        else:
-
+        if not isinstance(roi, PointROI):
             raise TypeError("Only PointROI selections are supported")
+        x, y = roi.x, roi.y
+
+        xs, ys = self.state._layout.xy
+        parent_ys = ys[1::3]
+        xs, ys = xs[::3], ys[::3]
+
+        delt = np.abs(x - xs)
+        delt[y > ys] = np.nan
+        delt[y < parent_ys] = np.nan
+
+        if np.isfinite(delt).any():
+            select = np.nanargmin(delt)
+            if self.state.select_substruct:
+                parent = self.state.reference_data[self.state.parent_att]
+                select = _substructures(parent, select)
+            select = np.asarray(select, dtype=np.int)
+        else:
+            select = np.array([], dtype=np.int)
+
+        subset_state = CategorySubsetState(self.state.reference_data.pixel_component_ids[0], select)
+
+        self.apply_subset_state(subset_state)
 
     @staticmethod
     def update_viewer_state(rec, context):

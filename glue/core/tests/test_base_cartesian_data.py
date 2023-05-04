@@ -33,10 +33,7 @@ class ExampleBaseData(BaseCartesianData):
 
     def get_data(self, cid, view=None):
         if cid is self.data_cid:
-            if view is None:
-                return self._array
-            else:
-                return self._array[view]
+            return self._array if view is None else self._array[view]
         else:
             return super(ExampleBaseData, self).get_data(cid, view=view)
 

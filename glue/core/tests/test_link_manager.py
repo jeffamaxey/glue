@@ -63,19 +63,19 @@ class TestAccessibleLinks(object):
         self.cs = [ComponentID("%i" % i) for i in range(10)]
 
     def test_returned_if_available(self):
-        cids = self.cs[0:5]
+        cids = self.cs[:5]
         links = [ComponentLink([self.cs[0]], self.cs[1])]
         assert links[0] in accessible_links(cids, links)
 
     def test_returned_if_reachable(self):
-        cids = self.cs[0:5]
+        cids = self.cs[:5]
         links = [ComponentLink([self.cs[0]], self.cs[6])]
         assert links[0] in accessible_links(cids, links)
 
     def test_not_returned_if_not_reachable(self):
-        cids = self.cs[0:5]
+        cids = self.cs[:5]
         links = [ComponentLink([self.cs[6]], self.cs[7])]
-        assert not links[0] in accessible_links(cids, links)
+        assert links[0] not in accessible_links(cids, links)
 
 
 class TestDiscoverLinks(object):
@@ -123,13 +123,13 @@ class TestFindDependents(object):
     def test_propagated(self):
         to_remove = self.links[0]
         result = find_dependents(self.data, to_remove)
-        expected = set([self.cs[2], self.cs[4], self.cs[5]])
+        expected = {self.cs[2], self.cs[4], self.cs[5]}
         assert expected == result
 
     def test_basic(self):
         to_remove = self.links[4]
         result = find_dependents(self.data, to_remove)
-        expected = set([self.cs[4]])
+        expected = {self.cs[4]}
         assert expected == result
 
 
@@ -160,8 +160,7 @@ class TestLinkManager(object):
 
     def test_setup(self):
         example_components(self, add_derived=False)
-        expected = set()
-        assert set(self.data.derived_components) == expected
+        assert not set(self.data.derived_components)
 
     def test_update_externally_derivable_components_adds_correctly(self):
         example_components(self, add_derived=False)
@@ -183,7 +182,7 @@ class TestLinkManager(object):
         # manually add last link as derived component
         dc = DerivedComponent(self.data, self.links[-1])
         self.data._externally_derivable_components.update({dc.link.get_to_id(): dc})
-        removed = set([dc.link.get_to_id()])
+        removed = {dc.link.get_to_id()}
         assert dc.link.get_to_id() in self.data.externally_derivable_components
 
         # this link should be removed upon update_components

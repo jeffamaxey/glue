@@ -70,7 +70,7 @@ class TestEquationEditor:
 
         assert self.dialog.expression.toPlainText() == '1 + {x'
 
-        for i in range(4):
+        for _ in range(4):
             QtTest.QTest.keyClick(self.dialog.expression, Qt.Key_Z, Qt.ControlModifier)
 
         assert self.dialog.expression.toPlainText() == '1 '

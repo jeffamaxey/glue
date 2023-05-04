@@ -34,8 +34,7 @@ def img_loader(file_name):
         from PIL import Image
         return np.asarray(Image.open(file_name))
     except ImportError:
-        raise ImportError("Reading %s requires PIL or scikit-image" %
-                          file_name)
+        raise ImportError(f"Reading {file_name} requires PIL or scikit-image")
 
 
 @data_factory(label='Image', identifier=has_extension(' '.join(IMG_FMT)))

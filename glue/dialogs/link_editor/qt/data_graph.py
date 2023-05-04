@@ -25,10 +25,7 @@ class Edge(QGraphicsLineItem):
         self.linewidth = linewidth
         self.node_source = node_source
         self.node_dest = node_dest
-        if link_type == 'join':
-            self.linestyle = Qt.DashLine
-        else:
-            self.linestyle = Qt.SolidLine
+        self.linestyle = Qt.DashLine if link_type == 'join' else Qt.SolidLine
         super(Edge, self).__init__(0, 0, 1, 1)
         self.setZValue(zindex)
         self.color = '0.5'
@@ -104,10 +101,7 @@ class DataNode:
             return True
 
         # Check node
-        if self.node.contains(self.node.mapFromScene(point)):
-            return True
-
-        return False
+        return bool(self.node.contains(self.node.mapFromScene(point)))
 
     def update(self):
         self.node.update()
@@ -149,7 +143,7 @@ class DataNode:
         x2, y2 = self.node_position
         x1 = 0.5 * (x0 + x2)
         y1 = y0
-        self.line1.setLine(x0, y0, x1, y1)
+        self.line1.setLine(x0, y1, x1, y1)
         self.line2.setLine(x1, y1, x2, y2)
 
     @property
@@ -191,7 +185,7 @@ def order_nodes_by_connections(nodes, edges):
     search_nodes = list(nodes)
     sorted_nodes = []
 
-    while len(search_nodes) > 0:
+    while search_nodes:
 
         lengths = []
         connections = []
@@ -432,14 +426,10 @@ class DataGraphWidget(QGraphicsView):
                     self.selected_node2 = selected
                     self.selection_level = 2
             elif self.selection_level == 2:
-                if selected is self.selected_node2:
-                    self.selected_node2 = None
-                    self.selection_level = 1
-                else:
+                if selected is not self.selected_node2:
                     self.selected_node1 = selected
-                    self.selected_node2 = None
-                    self.selection_level = 1
-
+                self.selection_level = 1
+                self.selected_node2 = None
             self._update_selected_edge()
 
         elif isinstance(selected, Edge):
@@ -458,13 +448,19 @@ class DataGraphWidget(QGraphicsView):
         self.mouseMoveEvent(event)
 
     def _update_selected_edge(self):
-        for edge in self.edges:
-            if (edge.node_source is self.selected_node1 and edge.node_dest is self.selected_node2 or
-                    edge.node_source is self.selected_node2 and edge.node_dest is self.selected_node1):
-                self.selected_edge = edge
-                break
-        else:
-            self.selected_edge = None
+        self.selected_edge = next(
+            (
+                edge
+                for edge in self.edges
+                if (
+                    edge.node_source is self.selected_node1
+                    and edge.node_dest is self.selected_node2
+                    or edge.node_source is self.selected_node2
+                    and edge.node_dest is self.selected_node1
+                )
+            ),
+            None,
+        )
 
     def _update_selected_colors(self):
 

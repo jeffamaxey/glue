@@ -25,9 +25,13 @@ def data_wizard(mode='files'):
         cancel = QtWidgets.QMessageBox.Cancel
         buttons = retry | cancel
         detail = traceback.format_exc()
-        msg = "\n".join(["Could not load %s (wrong load method?)" % curfile,
-                         "File load method: %s" % factory.label])
-        detail = "\n\n".join(["Error message: %s" % error, detail])
+        msg = "\n".join(
+            [
+                f"Could not load {curfile} (wrong load method?)",
+                f"File load method: {factory.label}",
+            ]
+        )
+        detail = "\n\n".join([f"Error message: {error}", detail])
         mb = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Critical, "Data Load Error", msg)
         mb.setDetailedText(detail)
         mb.setDefaultButton(cancel)
@@ -79,7 +83,7 @@ class GlueDataDialog(object):
         self._fd.setNameFilter(fltr)
 
     def _filter(self, factory):
-        return "%s (*)" % factory.label
+        return f"{factory.label} (*)"
 
     def paths(self):
         """

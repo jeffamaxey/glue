@@ -11,7 +11,12 @@ class TestExportPython(BaseTestExportPython):
     def setup_method(self, method):
 
         with NumpyRNGContext(12345):
-            self.data = Data(**dict((name, random_with_nan(100, nan_index=idx + 1)) for idx, name in enumerate('abcdefgh')))
+            self.data = Data(
+                **{
+                    name: random_with_nan(100, nan_index=idx + 1)
+                    for idx, name in enumerate('abcdefgh')
+                }
+            )
         self.data_collection = DataCollection([self.data])
         self.app = GlueApplication(self.data_collection)
         self.viewer = self.app.new_data_viewer(HistogramViewer)

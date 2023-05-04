@@ -43,11 +43,7 @@ def _substructures(parent, idx):
     """
     children = _dendro_children(parent)
     result = []
-    if np.isscalar(idx):
-        todo = [idx]
-    else:
-        todo = idx.tolist()
-
+    todo = [idx] if np.isscalar(idx) else idx.tolist()
     while todo:
         result.append(todo.pop())
         todo.extend(children[result[-1]])
@@ -69,8 +65,7 @@ def _iter_sorted(children, parent, key):
     trunks = np.array([i for i, p in enumerate(parent) if p < 0], dtype=np.int)
     for idx in np.argsort(key[trunks]):
         idx = trunks[idx]
-        for item in _postfix_iter(idx, children, parent, yielded, key):
-            yield item
+        yield from _postfix_iter(idx, children, parent, yielded, key)
 
 
 def _postfix_iter(node, children, parent, yielded, key):

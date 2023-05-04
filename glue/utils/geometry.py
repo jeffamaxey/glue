@@ -149,9 +149,7 @@ def polygon_line_intersections(px, py, xval=None, yval=None):
     xmid = np.repeat(xval, len(ymid))
     keep = points_inside_poly(xmid, ymid, px, py)
 
-    segments = list(zip(points[:-1][keep], points[1:][keep]))
-
-    return segments
+    return list(zip(points[:-1][keep], points[1:][keep]))
 
 
 def floodfill(data, start_coords, threshold):

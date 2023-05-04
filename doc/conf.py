@@ -11,23 +11,21 @@ from pkg_resources import get_distribution
 # If your documentation needs a minimal Sphinx version, state it here.
 needs_sphinx = '1.6'
 
-# Add any Sphinx extension module names here, as strings. They can be extensions
-# coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc',
-              'sphinx.ext.todo',
-              'sphinx.ext.coverage',
-              'sphinx.ext.mathjax',
-              'sphinx.ext.viewcode',
-              'sphinx.ext.intersphinx',
-              'numpydoc',
-              'sphinx_automodapi.automodapi',
-              'sphinx_automodapi.smart_resolver',
-              'sphinxcontrib.spelling']
-
 # Add the redirect.py plugin which is in this directory
 sys.path.insert(0, os.path.abspath('.'))
-extensions.append('redirect')
-
+extensions = [
+    'sphinx.ext.autodoc',
+    'sphinx.ext.todo',
+    'sphinx.ext.coverage',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.viewcode',
+    'sphinx.ext.intersphinx',
+    'numpydoc',
+    'sphinx_automodapi.automodapi',
+    'sphinx_automodapi.smart_resolver',
+    'sphinxcontrib.spelling',
+    'redirect',
+]
 # Workaround for RTD where the default encoding is ASCII
 if os.environ.get('READTHEDOCS') == 'True':
     import locale

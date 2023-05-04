@@ -70,25 +70,12 @@ def test_coerce_numeric():
     np.testing.assert_array_equal(coerce_numeric(x), np.array([0, 1, 1, 0], dtype=np.int))
 
 
-@pytest.mark.parametrize(('shape', 'views'),
-                         [
-                             [(5, 5), (np.s_[0:3],)],
-                             [(5, 4), (np.s_[0:3],)],
-                             [(5, 4), ((3, 2),)],
-                             [(5, 4), (np.s_[0:4], np.s_[:, 0:2])],
-                             [(5, 4), (np.s_[0:3, 0:2], 'transpose', (0, 0))],
-                             [(10, 20), (np.random.random((10, 20)) > 0.1, 3)],
-                             [(5, 7), ('transpose', (3, 2))],
-])
+@pytest.mark.parametrize(('shape', 'views'), [[(5, 5), (np.s_[:3], )], [(5, 4), (np.s_[:3], )], [(5, 4), ((3, 2),)], [(5, 4), (np.s_[:4], np.s_[:, 0:2])], [(5, 4), (np.s_[0:3, 0:2], 'transpose', (0, 0))], [(10, 20), (np.random.random((10, 20)) > 0.1, 3)], [(5, 7), ('transpose', (3, 2))]])
 def test_stack_view(shape, views):
     x = np.random.random(shape)
     exp = x
     for v in views:
-        if isinstance(v, str) and v == 'transpose':
-            exp = exp.T
-        else:
-            exp = exp[v]
-
+        exp = exp.T if isinstance(v, str) and v == 'transpose' else exp[v]
     actual = x[stack_view(shape, *views)]
 
     np.testing.assert_array_equal(exp, actual)
@@ -295,36 +282,37 @@ def test_format_minimal():
     assert strings == ['-3.0e+00', '0.0e+00', '9.9e-09', '5.0e+00']
 
 
-CASES = [('mean', [-3, 1, 6], dict(), 4 / 3),
-         ('mean', [-3, 1, 6], dict(mask=[1, 0, 1]), 1.5),
-         ('mean', [-3, 1, 6], dict(positive=True), 3.5),
-         ('mean', [-3, 1, np.nan], dict(finite=True), -1),
-         ('mean', [-3, 1, np.nan], dict(finite=False), np.nan),
-         ('median', [-3, 1, 6], dict(), 1),
-         ('median', [-3, 1, 6, 7], dict(mask=[1, 1, 0, 1]), 1),
-         ('median', [-3, 1, 6, 7], dict(positive=True), 6),
-         ('median', [-3, 1, np.nan, 6], dict(finite=True), 1),
-         ('median', [-3, 1, np.nan, 6], dict(finite=False), np.nan),
-         ('maximum', [-3, 1, 6], dict(), 6),
-         ('minimum', [-3, 1, 6], dict(), -3),
-         ('sum', [-3, 1, 6], dict(), 4),
-         ('percentile', [-3, 1, 6], dict(percentile=0), -3),
-         ('percentile', [-3, 1, 6], dict(percentile=50), 1),
-         ('percentile', [-3, 1, 6], dict(percentile=100), 6),
-         ('mean', [-3, 1, 6], dict(axis=()), [-3, 1, 6]),
-         ('maximum', [-3, 1, 6], dict(axis=()), [-3, 1, 6]),
-         ('mean', [-3, 1, 6], dict(axis=0), 4 / 3),
-         ('mean', [-3, 1, 6], dict(axis=(0,)), 4 / 3),
-         ('mean', [[-1, 2], [3, 4]], dict(), 2),
-         ('mean', [[-1, 2], [3, 4]], dict(axis=(0, 1)), 2),
-         ('mean', [[-1, 2], [3, 4]], dict(axis=0), [1, 3]),
-         ('mean', [[-1, 2], [3, 4]], dict(axis=1), [0.5, 3.5]),
-         ('mean', [[-1, 2], [3, 4]], dict(axis=1, positive=True), [2, 3.5]),
-         ('mean', [[np.nan, 2], [3, 4]], dict(axis=1, finite=True), [2, 3.5]),
-         ('mean', [[np.nan, 2], [3, 4]], dict(axis=1, finite=False), [np.nan, 3.5]),
-         ('mean', [], dict(), np.nan),
-         ('mean', [-3, 1, 6], dict(mask=[0, 0, 0]), np.nan),
-         ]
+CASES = [
+    ('mean', [-3, 1, 6], {}, 4 / 3),
+    ('mean', [-3, 1, 6], dict(mask=[1, 0, 1]), 1.5),
+    ('mean', [-3, 1, 6], dict(positive=True), 3.5),
+    ('mean', [-3, 1, np.nan], dict(finite=True), -1),
+    ('mean', [-3, 1, np.nan], dict(finite=False), np.nan),
+    ('median', [-3, 1, 6], {}, 1),
+    ('median', [-3, 1, 6, 7], dict(mask=[1, 1, 0, 1]), 1),
+    ('median', [-3, 1, 6, 7], dict(positive=True), 6),
+    ('median', [-3, 1, np.nan, 6], dict(finite=True), 1),
+    ('median', [-3, 1, np.nan, 6], dict(finite=False), np.nan),
+    ('maximum', [-3, 1, 6], {}, 6),
+    ('minimum', [-3, 1, 6], {}, -3),
+    ('sum', [-3, 1, 6], {}, 4),
+    ('percentile', [-3, 1, 6], dict(percentile=0), -3),
+    ('percentile', [-3, 1, 6], dict(percentile=50), 1),
+    ('percentile', [-3, 1, 6], dict(percentile=100), 6),
+    ('mean', [-3, 1, 6], dict(axis=()), [-3, 1, 6]),
+    ('maximum', [-3, 1, 6], dict(axis=()), [-3, 1, 6]),
+    ('mean', [-3, 1, 6], dict(axis=0), 4 / 3),
+    ('mean', [-3, 1, 6], dict(axis=(0,)), 4 / 3),
+    ('mean', [[-1, 2], [3, 4]], {}, 2),
+    ('mean', [[-1, 2], [3, 4]], dict(axis=(0, 1)), 2),
+    ('mean', [[-1, 2], [3, 4]], dict(axis=0), [1, 3]),
+    ('mean', [[-1, 2], [3, 4]], dict(axis=1), [0.5, 3.5]),
+    ('mean', [[-1, 2], [3, 4]], dict(axis=1, positive=True), [2, 3.5]),
+    ('mean', [[np.nan, 2], [3, 4]], dict(axis=1, finite=True), [2, 3.5]),
+    ('mean', [[np.nan, 2], [3, 4]], dict(axis=1, finite=False), [np.nan, 3.5]),
+    ('mean', [], {}, np.nan),
+    ('mean', [-3, 1, 6], dict(mask=[0, 0, 0]), np.nan),
+]
 
 
 @pytest.mark.parametrize(('statistic', 'data', 'kwargs', 'result'), CASES)

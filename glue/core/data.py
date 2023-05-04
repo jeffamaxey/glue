@@ -168,7 +168,7 @@ class BaseData(object, metaclass=abc.ABCMeta):
         DataCollections manage the registration of data objects
         """
         if not isinstance(hub, Hub):
-            raise TypeError("input is not a Hub object: %s" % type(hub))
+            raise TypeError(f"input is not a Hub object: {type(hub)}")
         self.hub = hub
 
     @property
@@ -332,7 +332,7 @@ class BaseData(object, metaclass=abc.ABCMeta):
                 raise ValueError("Several subsets are present, specify which one to retrieve with subset_id= - valid options are:" + format_choices(self._subset_labels, index=True))
         elif isinstance(subset_id, str):
             matches = [subset for subset in self.subsets if subset.label == subset_id]
-            if len(matches) == 0:
+            if not matches:
                 raise ValueError("No subset found with the label '{0}'".format(subset_id))
             elif len(matches) > 1:
                 raise ValueError("Several subsets were found with the label '{0}', use a numerical index instead".format(subset_id))
@@ -367,7 +367,7 @@ class BaseData(object, metaclass=abc.ABCMeta):
                 raise ValueError("Several subsets are present, specify which one to retrieve with subset_id= - valid options are:" + format_choices(self._subset_labels, index=True))
         elif isinstance(subset_id, str):
             matches = [subset for subset in self.subsets if subset.label == subset_id]
-            if len(matches) == 0:
+            if not matches:
                 raise ValueError("No subset found with the label '{0}'".format(subset_id))
             elif len(matches) > 1:
                 raise ValueError("Several subsets were found with the label '{0}', use a numerical index instead".format(subset_id))
@@ -460,10 +460,7 @@ class BaseCartesianData(BaseData, metaclass=abc.ABCMeta):
         # only in the Data class, but we use these components internally for
         # convenience.
 
-        if view is None:
-            return comp.data
-        else:
-            return comp[view]
+        return comp.data if view is None else comp[view]
 
     @abc.abstractmethod
     def get_mask(self, subset_state, view=None):
@@ -640,10 +637,9 @@ class BaseCartesianData(BaseData, metaclass=abc.ABCMeta):
         elif len(self._externally_derivable_components) == len(derivable_components):
 
             for key in derivable_components:
-                if key in self._externally_derivable_components:
-                    if self._externally_derivable_components[key].link is not derivable_components[key].link:
-                        break
-                else:
+                if key not in self._externally_derivable_components:
+                    break
+                if self._externally_derivable_components[key].link is not derivable_components[key].link:
                     break
             else:
                 return  # Unchanged!
@@ -817,14 +813,14 @@ class Data(BaseCartesianData):
     def _check_can_add(self, component):
         if isinstance(component, DerivedComponent):
             return component._data is self
+        if len(self._components) == 0:
+            return True
         else:
-            if len(self._components) == 0:
-                return True
-            else:
-                if all(comp.shape == () for comp in self._components.values()):
-                    return True
-                else:
-                    return component.shape == self.shape
+            return (
+                True
+                if all(comp.shape == () for comp in self._components.values())
+                else component.shape == self.shape
+            )
 
     @contract(cid=ComponentID, returns=np.dtype)
     def dtype(self, cid):
@@ -1012,9 +1008,9 @@ class Data(BaseCartesianData):
         """
 
         # To make things easier, we transform all component inputs to a tuple
-        if isinstance(cid, str) or isinstance(cid, ComponentID):
+        if isinstance(cid, (str, ComponentID)):
             cid = (cid,)
-        if isinstance(cid_other, str) or isinstance(cid_other, ComponentID):
+        if isinstance(cid_other, (str, ComponentID)):
             cid_other = (cid_other,)
 
         if len(cid) > 1 and len(cid_other) > 1 and len(cid) != len(cid_other):
@@ -1025,12 +1021,10 @@ class Data(BaseCartesianData):
         def get_component_id(data, name):
             if isinstance(name, ComponentID):
                 return name
-            else:
-                cid = data.find_component_id(name)
-                if cid is None:
-                    raise ValueError("ComponentID not found in %s: %s" %
-                                     (data.label, name))
-                return cid
+            cid = data.find_component_id(name)
+            if cid is None:
+                raise ValueError(f"ComponentID not found in {data.label}: {name}")
+            return cid
 
         cid = tuple(get_component_id(self, name) for name in cid)
         cid_other = tuple(get_component_id(other, name) for name in cid_other)
@@ -1156,7 +1150,7 @@ class Data(BaseCartesianData):
         for i in range(ndim):
             comp = CoordinateComponent(self, i)
             label = pixel_label(i, ndim)
-            cid = PixelComponentID(i, "Pixel Axis %s" % label, parent=self)
+            cid = PixelComponentID(i, f"Pixel Axis {label}", parent=self)
             self.add_component(comp, cid)
             self._pixel_component_ids.append(cid)
 
@@ -1277,15 +1271,14 @@ class Data(BaseCartesianData):
 
         for cid_set in (self.main_components, self.derived_components, self.coordinate_components, list(self._externally_derivable_components)):
 
-            result = []
-            for cid in cid_set:
-                if isinstance(label, ComponentID):
-                    if cid is label:
-                        result.append(cid)
-                else:
-                    if cid.label == label:
-                        result.append(cid)
-
+            result = [
+                cid
+                for cid in cid_set
+                if isinstance(label, ComponentID)
+                and cid is label
+                or not isinstance(label, ComponentID)
+                and cid.label == label
+            ]
             if len(result) == 1:
                 return result[0]
             elif len(result) > 1:
@@ -1391,7 +1384,7 @@ class Data(BaseCartesianData):
         return s[:-1]
 
     def __repr__(self):
-        return 'Data (label: %s)' % self.label
+        return f'Data (label: {self.label})'
 
     def __setattr__(self, name, value):
         if name == "hub" and hasattr(self, 'hub') \
@@ -1412,12 +1405,7 @@ class Data(BaseCartesianData):
         else:
             raise IncompatibleAttribute(cid)
 
-        if view is not None:
-            result = comp[view]
-        else:
-            result = comp.data
-
-        return result
+        return comp[view] if view is not None else comp.data
 
     def get_kind(self, cid):
 
@@ -1480,7 +1468,7 @@ class Data(BaseCartesianData):
         """
 
         h = lambda comp: self.get_component(comp).to_series(index=index)
-        df = pd.DataFrame(dict((comp.label, h(comp)) for comp in self.components))
+        df = pd.DataFrame({comp.label: h(comp) for comp in self.components})
         order = [comp.label for comp in self.components]
         return df[order]
 
@@ -1498,7 +1486,7 @@ class Data(BaseCartesianData):
             raise ValueError("Number of component in component_ids does not "
                              "match existing number of components")
 
-        if set(id(c) for c in self.components) != set(id(c) for c in component_ids):
+        if {id(c) for c in self.components} != {id(c) for c in component_ids}:
             raise ValueError("specified component_ids should match existing components")
 
         existing = self.components
@@ -1678,10 +1666,6 @@ class Data(BaseCartesianData):
                 self.size > n_chunk_max and
                 not isinstance(subset_state, SliceSubsetState)):
 
-            # We operate in chunks here to avoid memory issues.
-
-            axis_index = [a for a in range(self.ndim) if a not in axis][0]
-
             # In the specific case where the subset state depends only on pixel
             # component IDs but not the one for the chunk iteration axis used
             # here, we should not need to chunk. However this doesn't quite
@@ -1705,6 +1689,10 @@ class Data(BaseCartesianData):
             efficient_subset_state = False
 
             if not efficient_subset_state:
+
+                # We operate in chunks here to avoid memory issues.
+
+                axis_index = [a for a in range(self.ndim) if a not in axis][0]
 
                 result = np.zeros(self.shape[axis_index])
 
@@ -1818,11 +1806,10 @@ class Data(BaseCartesianData):
                 else:
                     if axis is None:
                         return np.nan
-                    else:
-                        if isinstance(axis, int):
-                            axis = [axis]
-                        final_shape = [mask.shape[i] for i in range(mask.ndim) if i not in axis]
-                        return broadcast_to(np.nan, final_shape)
+                    if isinstance(axis, int):
+                        axis = [axis]
+                    final_shape = [mask.shape[i] for i in range(mask.ndim) if i not in axis]
+                    return broadcast_to(np.nan, final_shape)
         else:
             data = self.get_data(cid, view=view)
             mask = None
@@ -1856,26 +1843,27 @@ class Data(BaseCartesianData):
 
         if subarray_slices is None or axis is None:
             return result
+        # Since subarray_slices was set above, we need to determine the
+        # shape of the full results had subarray_slices not been set,
+        # then insert the result into it. If axis is None, then we don't
+        # need to do anything, and this is covered by the first clause
+        # of the if statement above. Likewise if a view was specified,
+        # only the result within the view is returned.
+        if not isinstance(axis, tuple):
+            axis = (axis,)
+        result_slices = tuple(
+            subarray_slices[idim] for idim in range(self.ndim) if idim not in axis
+        )
+
+        if chunk_view is None:
+            full_shape = [self.shape[idim] for idim in range(self.ndim) if idim not in axis]
         else:
-            # Since subarray_slices was set above, we need to determine the
-            # shape of the full results had subarray_slices not been set,
-            # then insert the result into it. If axis is None, then we don't
-            # need to do anything, and this is covered by the first clause
-            # of the if statement above. Likewise if a view was specified,
-            # only the result within the view is returned.
-            if not isinstance(axis, tuple):
-                axis = (axis,)
-            result_slices = tuple([subarray_slices[idim] for idim in range(self.ndim) if idim not in axis])
+            chunk_shape = subset_state.to_mask(self, chunk_view).shape
+            full_shape = [chunk_shape[idim] for idim in range(self.ndim) if idim not in axis]
 
-            if chunk_view is None:
-                full_shape = [self.shape[idim] for idim in range(self.ndim) if idim not in axis]
-            else:
-                chunk_shape = subset_state.to_mask(self, chunk_view).shape
-                full_shape = [chunk_shape[idim] for idim in range(self.ndim) if idim not in axis]
-
-            full_result = np.zeros(full_shape) * np.nan
-            full_result[result_slices] = result
-            return full_result
+        full_result = np.zeros(full_shape) * np.nan
+        full_result[result_slices] = result
+        return full_result
 
     def compute_histogram(self, cids, weights=None, range=None, bins=None, log=None, subset_state=None):
         """

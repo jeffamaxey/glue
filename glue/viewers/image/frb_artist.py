@@ -20,15 +20,11 @@ class FRBArtist(BaseImageArtist):
     def array_func_wrapper(self, bins=None, range=None):
         if self._array_maker is None:
             return np.array([[np.nan]])
-        else:
-            ny, nx = bins
-            (ymin, ymax), (xmin, xmax) = range
-            bounds = [(ymin, ymax, ny), (xmin, xmax, nx)]
-            array = self._array_maker(bounds)
-            if array is None:
-                return np.array([[np.nan]])
-            else:
-                return array
+        ny, nx = bins
+        (ymin, ymax), (xmin, xmax) = range
+        bounds = [(ymin, ymax, ny), (xmin, xmax, nx)]
+        array = self._array_maker(bounds)
+        return np.array([[np.nan]]) if array is None else array
 
     def set_array_maker(self, array_maker):
         self._array_maker = array_maker

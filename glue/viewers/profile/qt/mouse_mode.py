@@ -47,9 +47,8 @@ class NavigateMouseMode(MouseMode):
             else:
                 self._line.set_visible(True)
                 self._line.set_data([self.state.x, self.state.x], [0, 1])
-        else:
-            if self.state.x is not None:
-                self._line = self._axes.axvline(self.state.x, color=COLOR)
+        elif self.state.x is not None:
+            self._line = self._axes.axvline(self.state.x, color=COLOR)
         self._canvas.draw_idle()
 
     def deactivate(self):
@@ -160,13 +159,12 @@ class RangeMouseMode(MouseMode):
                                        [self.state.x_max, 1],
                                        [self.state.x_max, 0],
                                        [self.state.x_min, 0]])
-        else:
-            if self.state.x_min is not None and self.state.x_max is not None:
-                self._lines = (self._axes.axvline(self.state.x_min, color=COLOR),
-                               self._axes.axvline(self.state.x_max, color=COLOR))
-                self._interval = self._axes.axvspan(self.state.x_min,
-                                                    self.state.x_max,
-                                                    color=COLOR, alpha=0.05)
+        elif self.state.x_min is not None and self.state.x_max is not None:
+            self._lines = (self._axes.axvline(self.state.x_min, color=COLOR),
+                           self._axes.axvline(self.state.x_max, color=COLOR))
+            self._interval = self._axes.axvspan(self.state.x_min,
+                                                self.state.x_max,
+                                                color=COLOR, alpha=0.05)
         self._canvas.draw_idle()
 
     def deactivate(self):

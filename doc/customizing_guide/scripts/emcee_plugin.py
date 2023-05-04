@@ -76,7 +76,7 @@ class EmceeGaussianFitter(BaseFitter1D):
         result = []
 
         # background samples
-        for i in range(100):
+        for _ in range(100):
             row = np.random.randint(0, chain.shape[0])
             params = chain[row]
             y = gaussian(x, *params)

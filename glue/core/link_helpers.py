@@ -59,7 +59,7 @@ def _toid(arg):
     elif isinstance(arg, str):
         return ComponentID(arg)
     else:
-        raise TypeError('Cannot be cast to a ComponentID: %s' % arg)
+        raise TypeError(f'Cannot be cast to a ComponentID: {arg}')
 
 
 class LinkCollection(object):
@@ -102,26 +102,19 @@ class LinkCollection(object):
         self.cids2 = cids2 or []
 
         if data1 is None:
-            if len(self.cids1) == 0:
-                self.data1 = None
-            else:
-                self.data1 = self.cids1[0].parent
+            self.data1 = None if len(self.cids1) == 0 else self.cids1[0].parent
         else:
             self.data1 = data1
 
         if data2 is None:
-            if len(self.cids2) == 0:
-                self.data2 = None
-            else:
-                self.data2 = self.cids2[0].parent
+            self.data2 = None if len(self.cids2) == 0 else self.cids2[0].parent
         else:
             self.data2 = data2
 
         self._links = []
 
     def __iter__(self):
-        for link in self._links:
-            yield link
+        yield from self._links
 
     def __len__(self):
         return len(self._links)
@@ -130,14 +123,10 @@ class LinkCollection(object):
         return self._links[item]
 
     def __contains__(self, cid):
-        for link in self:
-            if cid in link:
-                return True
-        return False
+        return any(cid in link for link in self)
 
     def __gluestate__(self, context):
-        state = {}
-        state['data1'] = context.id(self.data1)
+        state = {'data1': context.id(self.data1)}
         state['data2'] = context.id(self.data2)
         state['cids1'] = context.id(self.cids1)
         state['cids2'] = context.id(self.cids2)
@@ -146,16 +135,16 @@ class LinkCollection(object):
     @classmethod
     def __setgluestate__(cls, rec, context):
         if 'data1' in rec:
-            self = cls(data1=context.object(rec['data1']),
-                       data2=context.object(rec['data2']),
-                       cids1=context.object(rec['cids1']),
-                       cids2=context.object(rec['cids2']))
-        else:  # glue-core <0.15
-            cids = context.object(rec['cids'])
-            cids1 = [context.object(c) for c in cids[:len(cls.labels1)]]
-            cids2 = [context.object(c) for c in cids[len(cls.labels1):]]
-            self = cls(cids1=cids1, cids2=cids2)
-        return self
+            return cls(
+                data1=context.object(rec['data1']),
+                data2=context.object(rec['data2']),
+                cids1=context.object(rec['cids1']),
+                cids2=context.object(rec['cids2']),
+            )
+        cids = context.object(rec['cids'])
+        cids1 = [context.object(c) for c in cids[:len(cls.labels1)]]
+        cids2 = [context.object(c) for c in cids[len(cls.labels1):]]
+        return cls(cids1=cids1, cids2=cids2)
 
 
 class ManualLinkCollection(object):
@@ -233,7 +222,9 @@ class BaseMultiLink(LinkCollection):
                 links.append(ComponentLink(cids1, cids2[0], self.forwards))
             else:
                 for i, r in enumerate(cids2):
-                    func = PartialResult(self.forwards, i, name_prefix=self.__class__.__name__ + ".")
+                    func = PartialResult(
+                        self.forwards, i, name_prefix=f"{self.__class__.__name__}."
+                    )
                     links.append(ComponentLink(cids1, r, using=func,
                                                input_names=self.labels1))
 
@@ -244,7 +235,11 @@ class BaseMultiLink(LinkCollection):
                 links.append(ComponentLink(cids2, cids1[0], self.backwards))
             else:
                 for i, l in enumerate(cids1):
-                    func = PartialResult(self.backwards, i, name_prefix=self.__class__.__name__ + ".")
+                    func = PartialResult(
+                        self.backwards,
+                        i,
+                        name_prefix=f"{self.__class__.__name__}.",
+                    )
                     links.append(ComponentLink(cids2, l, using=func,
                                                input_names=self.labels1))
 
@@ -302,23 +297,21 @@ class MultiLink(BaseMultiLink):
         # PartialResult objects.
 
         if labels1 is None:
-            if forwards is not None:
-                if isinstance(forwards, types.MethodType):
-                    labels1 = getfullargspec(getattr(forwards, 'func', forwards))[0][1:]
-                else:
-                    labels1 = getfullargspec(getattr(forwards, 'func', forwards))[0]
-            else:
+            if forwards is None:
                 raise ValueError("labels1 needs to be specified if forwards isn't")
 
-        if labels2 is None:
-            if backwards is not None:
-                if isinstance(backwards, types.MethodType):
-                    labels2 = getfullargspec(getattr(backwards, 'func', backwards))[0][1:]
-                else:
-                    labels2 = getfullargspec(getattr(backwards, 'func', backwards))[0]
+            if isinstance(forwards, types.MethodType):
+                labels1 = getfullargspec(getattr(forwards, 'func', forwards))[0][1:]
             else:
+                labels1 = getfullargspec(getattr(forwards, 'func', forwards))[0]
+        if labels2 is None:
+            if backwards is None:
                 raise ValueError("labels2 needs to be specified if backwards isn't")
 
+            if isinstance(backwards, types.MethodType):
+                labels2 = getfullargspec(getattr(backwards, 'func', backwards))[0][1:]
+            else:
+                labels2 = getfullargspec(getattr(backwards, 'func', backwards))[0]
         self.labels1 = labels1
         self.labels2 = labels2
 
@@ -372,15 +365,13 @@ class LinkSame(MultiLink):
         super(LinkSame, self).__init__(**kwargs)
 
     def __gluestate__(self, context):
-        state = {}
-        state['cid1'] = context.id(self._cid1)
+        state = {'cid1': context.id(self._cid1)}
         state['cid2'] = context.id(self._cid2)
         return state
 
     @classmethod
     def __setgluestate__(cls, rec, context):
-        self = cls(context.object(rec['cid1']), context.object(rec['cid2']))
-        return self
+        return cls(context.object(rec['cid1']), context.object(rec['cid2']))
 
 
 class LinkTwoWay(MultiLink):
@@ -416,8 +407,7 @@ class LinkTwoWay(MultiLink):
         super(LinkTwoWay, self).__init__(forwards=forwards, backwards=backwards, **kwargs)
 
     def __gluestate__(self, context):
-        state = {}
-        state['cid1'] = context.id(self._cid1)
+        state = {'cid1': context.id(self._cid1)}
         state['cid2'] = context.id(self._cid2)
         state['forwards'] = context.id(self.forwards)
         state['backwards'] = context.id(self.backwards)
@@ -425,11 +415,12 @@ class LinkTwoWay(MultiLink):
 
     @classmethod
     def __setgluestate__(cls, rec, context):
-        self = cls(context.object(rec['cid1']),
-                   context.object(rec['cid2']),
-                   context.object(rec['forwards']),
-                   context.object(rec['backwards']))
-        return self
+        return cls(
+            context.object(rec['cid1']),
+            context.object(rec['cid2']),
+            context.object(rec['forwards']),
+            context.object(rec['backwards']),
+        )
 
 
 class LinkAligned(LinkCollection):
@@ -494,10 +485,10 @@ rows/items across two datasets."
 
     def __str__(self):
         # The >< here is one symbol for a database join
-        return '%s >< %s' % (self.cids1, self.cids2)
+        return f'{self.cids1} >< {self.cids2}'
 
     def __repr__(self):
-        return "<JoinLink: %s>" % self
+        return f"<JoinLink: {self}>"
 
     # Define __eq__ and __ne__ to facilitate removing
     # these kinds of links from the link_manager

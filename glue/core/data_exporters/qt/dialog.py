@@ -10,7 +10,7 @@ def export_data(data, components=None, exporter=None):
             if e.extension == '':
                 fltr = "{0} (*)".format(e.label)
             else:
-                fltr = "{0} ({1})".format(e.label, ' '.join('*.' + ext for ext in e.extension))
+                fltr = "{0} ({1})".format(e.label, ' '.join(f'*.{ext}' for ext in e.extension))
             exporters[fltr] = e.function
         filters = ';;'.join(sorted(exporters))
     else:

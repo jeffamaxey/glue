@@ -24,7 +24,7 @@ class TestLayerTree(object):
         self.win.setCentralWidget(self.widget)
         self.widget.setup(self.collect)
         for key, value in self.widget._actions.items():
-            self.__setattr__("%s_action" % key, value)
+            self.__setattr__(f"{key}_action", value)
 
     def teardown_method(self, method):
         self.win.close()

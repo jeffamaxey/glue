@@ -69,13 +69,8 @@ def _fix_ipython_pylab():
 
     try:
         shell.enable_pylab('agg', import_all=True)
-    except ValueError:
+    except (ValueError, UnknownBackend, UsageError):
         # if the shell is a normal terminal shell, we get here
-        pass
-    except UnknownBackend:
-        # if the shell is a normal terminal shell, we can also get here
-        pass
-    except UsageError:
         pass
     except KeyError:
         # old versions of ipython
@@ -558,9 +553,7 @@ class GlueApplication(Application, QtWidgets.QMainWindow):
         raise Exception("Tab not found")
 
     def tab(self, index=None):
-        if index is None:
-            return self.current_tab
-        return self._ui.tabWidget.widget(index)
+        return self.current_tab if index is None else self._ui.tabWidget.widget(index)
 
     def new_tab(self, *args):
         """Spawn a new tab page"""
@@ -593,7 +586,7 @@ class GlueApplication(Application, QtWidgets.QMainWindow):
                     "Are you sure you want to close this tab? "
                     "This will close all data viewers in the tab.",
                     buttons=buttons, defaultButton=QtWidgets.QMessageBox.Cancel)
-                if not dialog == QtWidgets.QMessageBox.Ok:
+                if dialog != QtWidgets.QMessageBox.Ok:
                     return
 
             for window in w.subWindowList():
@@ -627,17 +620,14 @@ class GlueApplication(Application, QtWidgets.QMainWindow):
         """
 
         # Find first tab that supports addSubWindow
-        if tab is None:
-            if hasattr(self.current_tab, 'addSubWindow'):
-                pass
+        if tab is None and not hasattr(self.current_tab, 'addSubWindow'):
+            for tab in range(self.tab_count):
+                page = self.tab(tab)
+                if hasattr(page, 'addSubWindow'):
+                    break
             else:
-                for tab in range(self.tab_count):
-                    page = self.tab(tab)
-                    if hasattr(page, 'addSubWindow'):
-                        break
-                else:
-                    self.new_tab()
-                    tab = self.tab_count - 1
+                self.new_tab()
+                tab = self.tab_count - 1
 
         page = self.tab(tab)
         pos = getattr(new_widget, 'position', None)
@@ -709,8 +699,8 @@ class GlueApplication(Application, QtWidgets.QMainWindow):
         options_widget.show()
 
         if title:
-            self._ui.plot_options_label.setText("Plot Options - %s" % title)
-            self._ui.plot_layers_label.setText("Plot Layers - %s" % title)
+            self._ui.plot_options_label.setText(f"Plot Options - {title}")
+            self._ui.plot_layers_label.setText(f"Plot Layers - {title}")
         else:
             self._ui.plot_options_label.setText("Plot Options")
             self._ui.plot_layers_label.setText("Plot Layers")
@@ -879,13 +869,10 @@ class GlueApplication(Application, QtWidgets.QMainWindow):
         # We now populate the "Import data" menu
         from glue.config import importer
 
-        acts = []
-
         # Add default file loader (later we can add this to the registry)
         a = action("Import from file", self, tip="Import from file")
         a.triggered.connect(self._import_helper._choose_load_data_wizard)
-        acts.append(a)
-
+        acts = [a]
         for label, data_importer in importer:
             a = action(label, self, tip=label)
             a.triggered.connect(nonpartial(self._import_helper._choose_load_data, data_importer))
@@ -898,9 +885,7 @@ class GlueApplication(Application, QtWidgets.QMainWindow):
             acts = []
             for e in exporters:
                 label, saver, checker, mode = e
-                a = action(label, self,
-                           tip='Export the current session to %s format' %
-                           label)
+                a = action(label, self, tip=f'Export the current session to {label} format')
                 a.triggered.connect(nonpartial(self._export_helper._choose_export_session,
                                                saver, checker, mode))
                 acts.append(a)
@@ -977,7 +962,7 @@ class GlueApplication(Application, QtWidgets.QMainWindow):
 
         name = 'Tab {0}'.format(self._total_tab_count)
         if hasattr(tab, 'LABEL'):
-            name += ': ' + tab.LABEL
+            name += f': {tab.LABEL}'
         self.tab_widget.addTab(tab, name)
         self.tab_widget.setCurrentWidget(tab)
         tab.subWindowActivated.connect(self._update_viewer_in_focus)
@@ -1017,10 +1002,7 @@ class GlueApplication(Application, QtWidgets.QMainWindow):
 
     def set_window_title(self, detail=None):
         """Set the window title"""
-        if detail is None:
-            title = "Glue"
-        else:
-            title = "Glue (" + detail + ")"
+        title = "Glue" if detail is None else f"Glue ({detail})"
         self.setWindowTitle(title)
 
     def _on_session_changed(self, name):
@@ -1068,16 +1050,17 @@ class GlueApplication(Application, QtWidgets.QMainWindow):
         if not file_name:
             return
 
-        ga = self.restore_session_and_close(file_name)
-        return ga
+        return self.restore_session_and_close(file_name)
 
     @property
     def is_empty(self):
         """
         Returns `True` if there are no viewers and no data.
         """
-        return (len([viewer for tab in self.viewers for viewer in tab]) == 0 and
-                len(self.data_collection) == 0)
+        return (
+            not [viewer for tab in self.viewers for viewer in tab]
+            and len(self.data_collection) == 0
+        )
 
     def _reset_session(self, *args, **kwargs):
         """
@@ -1093,7 +1076,7 @@ class GlueApplication(Application, QtWidgets.QMainWindow):
                 "Are you sure you want to reset the session? "
                 "This will close all datasets, subsets, and data viewers",
                 buttons=buttons, defaultButton=QtWidgets.QMessageBox.Cancel)
-            if not dialog == QtWidgets.QMessageBox.Ok:
+            if dialog != QtWidgets.QMessageBox.Ok:
                 return
 
         # Make sure the closeEvent gets executed to close the GlueLogger
@@ -1262,7 +1245,7 @@ class GlueApplication(Application, QtWidgets.QMainWindow):
                 "Loading a session file will close the existing session. Are you "
                 "sure you want to continue?",
                 buttons=buttons, defaultButton=QtWidgets.QMessageBox.Cancel)
-            if not dialog == QtWidgets.QMessageBox.Ok:
+            if dialog != QtWidgets.QMessageBox.Ok:
                 return
 
         with set_cursor_cm(Qt.WaitCursor):
@@ -1321,8 +1304,8 @@ class GlueApplication(Application, QtWidgets.QMainWindow):
         undo, redo = self._cmds.can_undo_redo()
         self._actions['undo'].setEnabled(undo)
         self._actions['redo'].setEnabled(redo)
-        self._actions['undo'].setText('Undo ' + self._cmds.undo_label)
-        self._actions['redo'].setText('Redo ' + self._cmds.redo_label)
+        self._actions['undo'].setText(f'Undo {self._cmds.undo_label}')
+        self._actions['redo'].setText(f'Redo {self._cmds.redo_label}')
 
     @property
     def viewers(self):
@@ -1373,12 +1356,9 @@ class GlueApplication(Application, QtWidgets.QMainWindow):
         others.sort(key=lambda x: x.label)
         for i, d in enumerate(others):
             if isinstance(d.coords, WCSCoordinates):
-                if i == 0:
-                    break
-                else:
+                if i != 0:
                     others[0], others[i] = others[i], others[0]
-                    break
-
+                break
         w.merged_label.setText(suggested_label)
 
         entries = [QtWidgets.QListWidgetItem(other.label) for other in others]
@@ -1391,10 +1371,11 @@ class GlueApplication(Application, QtWidgets.QMainWindow):
         if not w.exec_():
             return None, None
 
-        result = [layer for layer, entry in zip(others, entries)
-                  if entry.checkState() == Qt.Checked]
-
-        if result:
+        if result := [
+            layer
+            for layer, entry in zip(others, entries)
+            if entry.checkState() == Qt.Checked
+        ]:
             return result, str(w.merged_label.text())
 
         return None, None

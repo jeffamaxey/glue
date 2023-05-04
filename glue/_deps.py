@@ -43,7 +43,7 @@ class Dependency(object):
                 return 'unknown version'
 
     def help(self):
-        result = """
+        return """
 {module}:
 ******************
 
@@ -51,16 +51,17 @@ class Dependency(object):
 
 PIP package name:
 {package}
-""".format(module=self.module, info=self.info, package=self.package)
-        return result
+""".format(
+            module=self.module, info=self.info, package=self.package
+        )
 
     def __str__(self):
         if self.installed:
-            status = 'INSTALLED (%s)' % self.version
+            status = f'INSTALLED ({self.version})'
         elif self.failed:
-            status = 'FAILED (%s)' % self.info
+            status = f'FAILED ({self.info})'
         else:
-            status = 'MISSING (%s)' % self.info
+            status = f'MISSING ({self.info})'
         return "%20s:\t%s" % (self.package, status)
 
 
@@ -81,10 +82,7 @@ class Python(Dependency):
 class QtDependency(Dependency):
 
     def __str__(self):
-        if self.installed:
-            status = 'INSTALLED (%s)' % self.version
-        else:
-            status = 'NOT INSTALLED'
+        status = f'INSTALLED ({self.version})' if self.installed else 'NOT INSTALLED'
         return "%20s:\t%s" % (self.module, status)
 
 
@@ -184,14 +182,14 @@ export = (
 
 def plugins():
     modules = []
-    dependencies = []
     for entry_point in iter_plugin_entry_points():
         module_name = entry_point.module_name.split('.')[0]
         package = entry_point.dist.project_name
         modules.append((module_name, package))
-    for module, package in sorted(set(modules)):
-        dependencies.append(Dependency(module, '', package=package))
-    return dependencies
+    return [
+        Dependency(module, '', package=package)
+        for module, package in sorted(set(modules))
+    ]
 
 
 categories = (('python', python),
@@ -205,7 +203,7 @@ categories = (('python', python),
               ('export', export))
 
 
-dependencies = dict((d.package, d) for c in categories for d in c[1])
+dependencies = {d.package: d for c in categories for d in c[1]}
 
 
 def get_status():
@@ -222,10 +220,7 @@ def get_status_as_odict():
     status = OrderedDict()
     for category, deps in categories:
         for dep in deps:
-            if dep.installed:
-                status[dep.package] = dep.version
-            else:
-                status[dep.package] = "Not installed"
+            status[dep.package] = dep.version if dep.installed else "Not installed"
     return status
 
 

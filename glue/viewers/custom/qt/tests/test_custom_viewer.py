@@ -149,7 +149,7 @@ class TestCustomViewer(object):
 
         a, k = plot_data.call_args
         assert isinstance(k['axes'], Axes)
-        assert set(k.keys()) == set(('axes', 'a', 'b', 'g', 'h'))
+        assert set(k.keys()) == {'axes', 'a', 'b', 'g', 'h'}
         assert k['a'] == 50
         assert k['g'] == 1
         assert k['h'] == 64
@@ -161,7 +161,7 @@ class TestCustomViewer(object):
         self.dc.new_subset_group(subset_state=self.data.id['x'] > 2)
 
         a, k = plot_subset.call_args
-        assert set(k.keys()) == set(('b', 'c', 'd', 'e', 'f', 'style'))
+        assert set(k.keys()) == {'b', 'c', 'd', 'e', 'f', 'style'}
 
         assert_array_equal(k['b'], [3])
         assert_array_equal(k['c'], [3])
@@ -177,7 +177,7 @@ class TestCustomViewer(object):
 
         a, k = make_selector.call_args
 
-        assert set(k.keys()) == set(('roi', 'c'))
+        assert set(k.keys()) == {'roi', 'c'}
         assert k['roi'] is roi
 
     def test_settings_change(self):
@@ -232,9 +232,7 @@ class TestCustomSelectMethod(object):
 
         @self.viewer.select
         def select(roi, x, flip):
-            if flip:
-                return x <= 1
-            return x > 1
+            return x <= 1 if flip else x > 1
 
     def setup_method(self, method):
         self.data = Data(x=[1, 2, 3], y=[2, 3, 4])

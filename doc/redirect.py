@@ -27,7 +27,7 @@ def setup(app):
 def process_redirect_file(app, path, ent):
     parent_path = path.replace(app.builder.srcdir, app.builder.outdir)
     with open(os.path.join(path, ent)) as redirects:
-        for line in redirects.readlines():
+        for line in redirects:
             from_path, to_path = line.rstrip().split(' ')
             from_path = from_path.replace('.rst', '.html')
             to_path = to_path.replace('.rst', '.html')
@@ -37,9 +37,9 @@ def process_redirect_file(app, path, ent):
             if not os.path.exists(redirected_directory):
                 os.makedirs(redirected_directory)
             with open(redirected_filename, 'w') as f:
-                f.write('<html><head><meta http-equiv="refresh" content="0; '
-                        'url=%s" /></head></html>'
-                        % to_path)
+                f.write(
+                    f'<html><head><meta http-equiv="refresh" content="0; url={to_path}" /></head></html>'
+                )
 
 
 def emit_redirects(app, exc):
@@ -51,7 +51,7 @@ def emit_redirects(app, exc):
             if os.path.isdir(p):
                 process_directory(p)
             elif ent == 'redirects':
-                logger.info('   found redirects at %s' % p)
+                logger.info(f'   found redirects at {p}')
                 process_redirect_file(app, path, ent)
 
     process_directory(app.builder.srcdir)

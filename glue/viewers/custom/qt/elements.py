@@ -47,10 +47,7 @@ class QLabeledSlider(QWidget):
 
     def value(self, layer=None, view=None):
         value = self._slider.value() / 100. * (self.range[1] - self.range[0]) + self.range[0]
-        if self.integer:
-            return int(value)
-        else:
-            return value
+        return int(value) if self.integer else value
 
     _in_set_value = False
 
@@ -104,7 +101,7 @@ class FormElement(object):
         for cls in subclasses(FormElement):
             if cls.recognizes(params):
                 return cls(params)
-        raise ValueError("Unrecognzied UI Component: %s" % (params,))
+        raise ValueError(f"Unrecognzied UI Component: {params}")
 
 
 class NumberElement(FormElement):
@@ -121,9 +118,10 @@ class NumberElement(FormElement):
     @classmethod
     def recognizes(cls, params):
         try:
-            if len(params) not in [2, 3]:
+            if len(params) in {2, 3}:
+                return all(isinstance(p, (int, float)) for p in params)
+            else:
                 return False
-            return all(isinstance(p, (int, float)) for p in params)
         except TypeError:
             return False
 
@@ -232,7 +230,7 @@ class ChoiceElement(FormElement):
             choices = self.params
             display_func = None
         else:
-            params_inv = dict((value, key) for key, value in self.params.items())
+            params_inv = {value: key for key, value in self.params.items()}
             choices = list(params_inv.keys())
             display_func = params_inv.get
         property = SelectionCallbackProperty(default_index=0, choices=choices,

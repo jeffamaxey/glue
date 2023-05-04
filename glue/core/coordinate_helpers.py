@@ -156,9 +156,7 @@ def dependent_axes(wcs, axis):
 def _get_ndim(header):
     if 'NAXIS' in header:
         return header['NAXIS']
-    if 'WCSAXES' in header:
-        return header['WCSAXES']
-    return None
+    return header['WCSAXES'] if 'WCSAXES' in header else None
 
 
 def axis_label(wcs, axis):
@@ -171,11 +169,7 @@ def axis_label(wcs, axis):
         num = _get_ndim(header) - axis  # number orientation reversed
         ax = header.get('CTYPE%i' % num)
         if ax is not None:
-            if len(ax) == 8 or '-' in ax:  # assume standard format
-                ax = ax[:5].split('-')[0].title()
-            else:
-                ax = ax.title()
-
+            ax = ax[:5].split('-')[0].title() if len(ax) == 8 or '-' in ax else ax.title()
             translate = dict(
                 Glon='Galactic Longitude',
                 Glat='Galactic Latitude',
@@ -187,5 +181,5 @@ def axis_label(wcs, axis):
             return translate.get(ax, ax)
         unit = header.get('CUNIT%i' % num)
         if unit is not None:
-            return "World {} ({})".format(axis, unit)
-    return "World {}".format(axis)
+            return f"World {axis} ({unit})"
+    return f"World {axis}"

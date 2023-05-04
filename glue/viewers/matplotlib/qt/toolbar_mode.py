@@ -114,12 +114,9 @@ class ContrastMode(ToolbarModeBase):
         super(ContrastMode, self).move(event)
 
     def menu_actions(self):
-        result = []
-
         a = QtWidgets.QAction("minmax", None)
         a.triggered.connect(nonpartial(self.set_clip_percentile, 0, 100))
-        result.append(a)
-
+        result = [a]
         a = QtWidgets.QAction("99%", None)
         a.triggered.connect(nonpartial(self.set_clip_percentile, 1, 99))
         result.append(a)

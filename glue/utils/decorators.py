@@ -16,11 +16,13 @@ def die_on_error(msg):
                 return func(*args, **kwargs)
             except Exception as e:
                 print('=' * 72)
-                print(msg + ' (traceback below)')
+                print(f'{msg} (traceback below)')
                 print('-' * 72)
                 traceback.print_exc()
                 print('=' * 72)
+
         return wrapper
+
     return decorator
 
 

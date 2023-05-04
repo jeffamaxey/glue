@@ -88,8 +88,7 @@ def cmap2pixmap(cmap, steps=50, size=(100, 100)):
     for i in range(steps):
         im.setPixel(i, 0, i)
     im = im.scaled(*size)
-    pm = QtGui.QPixmap.fromImage(im)
-    return pm
+    return QtGui.QPixmap.fromImage(im)
 
 
 def tint_pixmap(bm, color):
@@ -115,8 +114,7 @@ def tint_pixmap(bm, color):
     image.setColor(1, color.rgba())
     image.setColor(0, QtGui.QColor(0, 0, 0, 0).rgba())
 
-    result = QtGui.QPixmap.fromImage(image)
-    return result
+    return QtGui.QPixmap.fromImage(image)
 
 
 class ColorProperty(WidgetProperty):

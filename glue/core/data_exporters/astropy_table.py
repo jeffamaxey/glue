@@ -42,7 +42,7 @@ def table_exporter(fmt, label, extension):
 
     # rename function to its variable reference below
     # allows pickling to work
-    factory.__name__ = '%s_factory' % fmt.replace('.', '_')
+    factory.__name__ = f"{fmt.replace('.', '_')}_factory"
 
     return factory
 

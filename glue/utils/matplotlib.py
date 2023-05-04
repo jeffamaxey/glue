@@ -45,11 +45,19 @@ def all_artists(fig):
     fig : :func:`matplotlib.pyplot.figure`
         Matplotlib figure.
     """
-    return set(item
-               for axes in fig.axes
-               for container in [axes.collections, axes.patches, axes.lines,
-                                 axes.texts, axes.artists, axes.images]
-               for item in container)
+    return {
+        item
+        for axes in fig.axes
+        for container in [
+            axes.collections,
+            axes.patches,
+            axes.lines,
+            axes.texts,
+            axes.artists,
+            axes.images,
+        ]
+        for item in container
+    }
 
 
 def new_artists(fig, old_artists):
@@ -149,7 +157,7 @@ def fast_limits(data, plo, phi):
     """
 
     shp = data.shape
-    view = tuple([slice(None, None, np.intp(max(s / 50, 1))) for s in shp])
+    view = tuple(slice(None, None, np.intp(max(s / 50, 1))) for s in shp)
     values = np.asarray(data)[view]
     if ~np.isfinite(values).any():
         return (0.0, 1.0)
@@ -194,10 +202,9 @@ def defer_draw(func):
                 # We need to use another try...finally block here in case the
                 # executed deferred draw calls fail for any reason
                 try:
-                    try:
-                        backend.draw_idle.execute_deferred_calls()
-                    except RuntimeError:  # For C/C++ errors with Qt
-                        pass
+                    backend.draw_idle.execute_deferred_calls()
+                except RuntimeError:  # For C/C++ errors with Qt
+                    pass
                 finally:
                     backend.draw_idle = backend.draw_idle.original_method
 
@@ -209,8 +216,7 @@ def defer_draw(func):
 
 def color2rgb(color):
     from matplotlib.colors import ColorConverter
-    result = ColorConverter().to_rgb(color)
-    return result
+    return ColorConverter().to_rgb(color)
 
 
 def color2hex(color):
@@ -403,10 +409,7 @@ class Datetime64Converter(units.ConversionInterface):
     @staticmethod
     def convert(value, unit, axis):
         value = np.asarray(value)
-        if value.dtype.kind == 'M':
-            return datetime64_to_mpl(value)
-        else:
-            return value
+        return datetime64_to_mpl(value) if value.dtype.kind == 'M' else value
 
     @staticmethod
     def axisinfo(unit, axis):

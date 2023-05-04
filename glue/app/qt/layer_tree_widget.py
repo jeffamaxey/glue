@@ -79,21 +79,15 @@ class LayerAction(QtWidgets.QAction):
 
     def single_selection_data(self):
         layers = self.selected_layers()
-        if len(layers) != 1:
-            return False
-        return isinstance(layers[0], core.Data)
+        return False if len(layers) != 1 else isinstance(layers[0], core.Data)
 
     def single_selection_subset(self):
         layers = self.selected_layers()
-        if len(layers) != 1:
-            return False
-        return isinstance(layers[0], core.Subset)
+        return False if len(layers) != 1 else isinstance(layers[0], core.Subset)
 
     def single_selection_subset_group(self):
         layers = self.selected_layers()
-        if len(layers) != 1:
-            return False
-        return isinstance(layers[0], core.SubsetGroup)
+        return False if len(layers) != 1 else isinstance(layers[0], core.SubsetGroup)
 
     def _can_trigger(self):
         raise NotImplementedError
@@ -113,9 +107,11 @@ class PlotAction(LayerAction):
         self.app = weakref.ref(app)
 
     def _can_trigger(self):
-        if not self.single_selection():
-            return False
-        return isinstance(self.selected_layers()[0], (core.Subset, core.Data))
+        return (
+            isinstance(self.selected_layers()[0], (core.Subset, core.Data))
+            if self.single_selection()
+            else False
+        )
 
     def _do_action(self):
         assert self._can_trigger()
@@ -155,10 +151,7 @@ class MetadataAction(LayerAction):
 
     def _do_action(self):
         layers = self.selected_layers()
-        if isinstance(layers[0], core.Subset):
-            data = layers[0].data
-        else:
-            data = layers[0]
+        data = layers[0].data if isinstance(layers[0], core.Subset) else layers[0]
         MetadataDialog(data).exec_()
 
 
@@ -350,9 +343,7 @@ class PasteAction(LayerAction):
         if not self.single_selection_subset_group():
             return False
         cnt = Clipboard().contents
-        if not isinstance(cnt, core.subset.SubsetState):
-            return False
-        return True
+        return isinstance(cnt, core.subset.SubsetState)
 
     def _do_action(self):
         assert self._can_trigger()
@@ -462,28 +453,25 @@ class UserAction(LayerAction):
         super(UserAction, self).__init__(layer_tree_widget)
 
     def _can_trigger(self):
-        if self._single:
-            if self.single_selection():
-                layer = self.selected_layers()[0]
-                if isinstance(layer, core.Data) and self._data:
-                    return True
-                elif isinstance(layer, core.SubsetGroup) and self._subset_group:
-                    return True
-                elif isinstance(layer, core.Subset) and self._subset:
-                    return True
-                else:
-                    return False
-            else:
-                return False
-        else:
+        if not self._single:
             return len(self.selected_layers()) > 0
+        if not self.single_selection():
+            return False
+        layer = self.selected_layers()[0]
+        if isinstance(layer, core.Data) and self._data:
+            return True
+        elif isinstance(layer, core.SubsetGroup) and self._subset_group:
+            return True
+        elif isinstance(layer, core.Subset) and self._subset:
+            return True
+        else:
+            return False
 
     def _do_action(self):
-        if self._single:
-            subset = self.selected_layers()[0]
-            return self._callback(subset, self.data_collection)
-        else:
+        if not self._single:
             return self._callback(self.selected_layers(), self.data_collection)
+        subset = self.selected_layers()[0]
+        return self._callback(subset, self.data_collection)
 
 
 class LayerCommunicator(QtCore.QObject):
@@ -635,11 +623,9 @@ class LayerTreeWidget(QtWidgets.QMainWindow, HubListener):
 
     def __getitem__(self, key):
         raise NotImplementedError()
-        return self.ui.layerTree[key]
 
     def __setitem__(self, key, value):
         raise NotImplementedError()
-        self.ui.layerTree[key] = value
 
     def __contains__(self, obj):
         return obj in self.ui.layerTree

@@ -20,13 +20,10 @@ def check_duplicate_shortcut(key_shortcut):
     glue application somewhere else.
     This will become simpler with the implementation of a GUI
     """
-    list_of_shortcuts = []
-    for k in viewer_tool.__iter__():
-        list_of_shortcuts.append(viewer_tool.members[k].shortcut)
-
-    if key_shortcut in list_of_shortcuts:
-        return True
-    return False
+    list_of_shortcuts = [
+        viewer_tool.members[k].shortcut for k in viewer_tool.__iter__()
+    ]
+    return key_shortcut in list_of_shortcuts
 
 
 @keyboard_shortcut(QtCore.Qt.Key_Tab, [ImageViewer, HistogramViewer, ScatterViewer, DataTableModel])

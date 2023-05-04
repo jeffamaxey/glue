@@ -93,9 +93,7 @@ class ComponentLink(object, metaclass=ContractsMeta):
         if using is identity:
             if inverse is None:
                 inverse = identity
-            elif inverse is identity:
-                pass
-            else:
+            elif inverse is not identity:
                 raise ValueError("Cannot specify inverse if using is identity")
 
         self._using = using
@@ -112,31 +110,27 @@ class ComponentLink(object, metaclass=ContractsMeta):
         self.output_name = output_name or 'output'
 
         if not isinstance(comp_from, list):
-            raise TypeError("comp_from must be a list: %s" % type(comp_from))
+            raise TypeError(f"comp_from must be a list: {type(comp_from)}")
 
         if not all(isinstance(f, ComponentID) for f in self._from):
-            raise TypeError("from argument is not a list of ComponentIDs: %s" %
-                            self._from)
+            raise TypeError(f"from argument is not a list of ComponentIDs: {self._from}")
         if not isinstance(self._to, ComponentID):
-            raise TypeError("to argument is not a ComponentID: %s" %
-                            type(self._to))
+            raise TypeError(f"to argument is not a ComponentID: {type(self._to)}")
 
-        if using is identity:
-            if len(comp_from) != 1:
-                raise TypeError("comp_from must have only 1 element, "
-                                "or a 'using' function must be provided")
+        if using is identity and len(comp_from) != 1:
+            raise TypeError("comp_from must have only 1 element, "
+                            "or a 'using' function must be provided")
 
         if inverse_component_link is None:
-            if inverse is not None:
-                if len(comp_from) == 1:
-                    self._inverse_component_link = ComponentLink([self._to], self._from[0],
-                                                                 using=self._inverse,
-                                                                 inverse=self._using,
-                                                                 inverse_component_link=self)
-                else:
-                    raise ValueError("Can only use an inverse with one comp_from link")
-            else:
+            if inverse is None:
                 self._inverse_component_link = None
+            elif len(comp_from) == 1:
+                self._inverse_component_link = ComponentLink([self._to], self._from[0],
+                                                             using=self._inverse,
+                                                             inverse=self._using,
+                                                             inverse_component_link=self)
+            else:
+                raise ValueError("Can only use an inverse with one comp_from link")
         else:
             self._inverse_component_link = inverse_component_link
 
@@ -248,10 +242,7 @@ class ComponentLink(object, metaclass=ContractsMeta):
 
     @property
     def inverse(self):
-        if self._inverse is None:
-            return None
-        else:
-            return self._inverse_component_link
+        return None if self._inverse is None else self._inverse_component_link
 
     def get_inverse(self):
         """ The inverse transformation, or None """
@@ -259,27 +250,25 @@ class ComponentLink(object, metaclass=ContractsMeta):
 
     def __str__(self):
         from glue.core.link_helpers import identity
-        args = ", ".join([t.label for t in self._from])
         if self._using is identity:
-            result = "%s <-> %s" % (self._to, self._from[0])
-        else:
-            if self._inverse is None:
-                result = "%s <- %s(%s)" % (self._to, self._using.__name__, args)
-            else:
-                result = "%s <-> %s(%s)" % (self._to, self._using.__name__, args)
-        return result
+            return f"{self._to} <-> {self._from[0]}"
+        args = ", ".join([t.label for t in self._from])
+        return (
+            f"{self._to} <- {self._using.__name__}({args})"
+            if self._inverse is None
+            else f"{self._to} <-> {self._using.__name__}({args})"
+        )
 
     def to_html(self):
         from glue.core.link_helpers import identity
-        args = ", ".join([t.to_html() for t in self._from])
         if self._using is identity:
-            result = "%s &#8596; %s" % (self._to.to_html(), self._from[0].to_html())
-        else:
-            if self._inverse is None:
-                result = "%s &#8592; %s(%s)" % (self._to.to_html(), self._using.__name__, args)
-            else:
-                result = "%s &#8596; %s(%s)" % (self._to.to_html(), self._using.__name__, args)
-        return result
+            return f"{self._to.to_html()} &#8596; {self._from[0].to_html()}"
+        args = ", ".join([t.to_html() for t in self._from])
+        return (
+            f"{self._to.to_html()} &#8592; {self._using.__name__}({args})"
+            if self._inverse is None
+            else f"{self._to.to_html()} &#8596; {self._using.__name__}({args})"
+        )
 
     def __repr__(self):
         return str(self)
@@ -431,16 +420,14 @@ class BinaryComponentLink(ComponentLink):
         elif isinstance(left, ComponentLink):
             from_.extend(left.get_from_ids())
         elif not isinstance(left, numbers.Number):
-            raise TypeError("Cannot create BinaryComponentLink using %s" %
-                            left)
+            raise TypeError(f"Cannot create BinaryComponentLink using {left}")
 
         if isinstance(right, ComponentID):
             from_.append(right)
         elif isinstance(right, ComponentLink):
             from_.extend(right.get_from_ids())
         elif not isinstance(right, numbers.Number):
-            raise TypeError("Cannot create BinaryComponentLink using %s" %
-                            right)
+            raise TypeError(f"Cannot create BinaryComponentLink using {right}")
 
         to = ComponentID("")
         super(BinaryComponentLink, self).__init__(from_, to, null)
@@ -504,7 +491,7 @@ class BinaryComponentLink(ComponentLink):
 
     def __str__(self):
         sym = OPSYM.get(self._op, self._op.__name__)
-        return '(%s %s %s)' % (self._left, sym, self._right)
+        return f'({self._left} {sym} {self._right})'
 
     def __repr__(self):
-        return "<BinaryComponentLink: %s>" % self
+        return f"<BinaryComponentLink: {self}>"

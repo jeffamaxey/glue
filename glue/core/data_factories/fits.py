@@ -17,17 +17,15 @@ def is_fits(filename):
         start = f.read(9)
 
     # Let's check if it could be a FITS file is uncompressed
-    if not start == b'SIMPLE  =':
+    if start != b'SIMPLE  =':
 
-        # It isn't, so maybe it's compressed?
-        if start[:2] == b'\x1f\x8b':
-            with gzip.GzipFile(filename) as gz:
-                if not gz.read(9) == b'SIMPLE  =':
-                    return False
-        else:
+        if start[:2] != b'\x1f\x8b':
             # Not gzip compressed, so not a FITS file
             return False
 
+        with gzip.GzipFile(filename) as gz:
+            if gz.read(9) != b'SIMPLE  =':
+                return False
     from astropy.io import fits
     try:
         with warnings.catch_warnings():
@@ -96,22 +94,19 @@ def fits_reader(source, auto_merge=False, exclude_exts=None, label=None):
 
     # Create a new image Data.
     def new_data(suffix=True):
-        if suffix:
-            label = '{0}[{1}]'.format(label_base, hdu_name)
-        else:
-            label = label_base
+        label = '{0}[{1}]'.format(label_base, hdu_name) if suffix else label_base
         data = Data(label=label)
         data.coords = coords
 
         # We need to be careful here because some header values are special
         # objects that we should convert to strings
         for key, value in hdu.header.items():
-            if (key == 'COMMENT' or key == 'HISTORY'):
+            if key in ['COMMENT', 'HISTORY']:
                 if key not in data.meta:
                     data.meta[key] = [str(value)]
                 else:
                     data.meta[key].append(str(value))
-            elif isinstance(value, str) or isinstance(value, (int, float, bool)):
+            elif isinstance(value, (str, int, float, bool)):
                 data.meta[key] = value
             else:
                 data.meta[key] = str(value)

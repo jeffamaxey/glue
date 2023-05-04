@@ -56,9 +56,9 @@ class Application(HubListener):
         self._cmds = self._session.command_stack
         self._cmds.add_callback(self._update_undo_redo_enabled)
 
-        self._settings = {}
-        for key, value, validator in settings:
-            self._settings[key] = [value, validator]
+        self._settings = {
+            key: [value, validator] for key, value, validator in settings
+        }
 
     @property
     def session(self):
@@ -204,10 +204,7 @@ class Application(HubListener):
 
         self.add_datasets(datasets, auto_merge=auto_merge, **kwargs)
 
-        if len(datasets) == 1:
-            return datasets[0]
-        else:
-            return datasets
+        return datasets[0] if len(datasets) == 1 else datasets
 
     @catch_error("Could not add data")
     def add_data(self, *args, **kwargs):
@@ -255,7 +252,7 @@ class Application(HubListener):
         detail : `str`
             Longer context about the error.
         """
-        raise Exception(message + "(" + detail + ")")
+        raise Exception(f"{message}({detail})")
 
     def do(self, command):
         return self._cmds.do(command)
@@ -306,22 +303,16 @@ class Application(HubListener):
         datasets = as_flat_data_list(datasets)
         data_collection.extend(datasets)
 
-        # We now automatically merge the datasets if requested. However, we only
-        # do this if all the datasets have the same shape to avoid confusion.
-        if auto_merge and len(datasets) > 1:
-
-            reference_shape = datasets[0].shape
-
-            if all([data.shape == reference_shape for data in datasets[1:]]):
-                suggested_label = data_collection.suggest_merge_label(*datasets)
-                return data_collection.merge(*datasets, label=suggested_label)
-            else:
-                raise ValueError("Can only auto-merge datasets if they all have "
-                                 " the same shape")
-
-        else:
-
+        if not auto_merge or len(datasets) <= 1:
             return datasets
+        reference_shape = datasets[0].shape
+
+        if all(data.shape == reference_shape for data in datasets[1:]):
+            suggested_label = data_collection.suggest_merge_label(*datasets)
+            return data_collection.merge(*datasets, label=suggested_label)
+        else:
+            raise ValueError("Can only auto-merge datasets if they all have "
+                             " the same shape")
 
     @staticmethod
     def _choose_merge(data, other, suggested_label):

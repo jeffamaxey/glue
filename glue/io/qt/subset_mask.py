@@ -13,7 +13,7 @@ def _make_filters_dict(registry):
         if e.extension == '':
             fltr = "{0} (*)".format(e.label)
         else:
-            fltr = "{0} ({1})".format(e.label, ' '.join('*.' + ext for ext in e.extension))
+            fltr = "{0} ({1})".format(e.label, ' '.join(f'*.{ext}' for ext in e.extension))
         filters[fltr] = e.function
 
     return filters
@@ -30,9 +30,7 @@ class QtSubsetMaskImporter(SubsetMaskImporter):
         filename, fltr = compat.getopenfilename(caption="Choose a subset mask file",
                                                 filters=filters)
 
-        filename = str(filename)
-
-        if filename:
+        if filename := str(filename):
             return filename, subset_mask_importers[fltr]
         else:
             return None, None
@@ -53,9 +51,7 @@ class QtSubsetMaskExporter(SubsetMaskExporter):
         filename, fltr = compat.getsavefilename(caption="Choose a subset mask filename",
                                                 filters=filters)
 
-        filename = str(filename)
-
-        if filename:
+        if filename := str(filename):
             return filename, subset_mask_exporters[fltr]
         else:
             return None, None

@@ -38,7 +38,7 @@ def test_state_serialization():
     assert state2.a == 2
     assert state2.b == 'hello'
     assert state2.flat == [1, 3, 4]
-    assert state2.nested[0:2] == [1, 3]
+    assert state2.nested[:2] == [1, 3]
     assert state2.nested[2].a == 3
     assert state2.nested[2].b == 'blah'
     assert state2.nested[2].flat == [1, 2]

@@ -17,9 +17,10 @@ def diagnostics():
     """
     Return a some system informaton useful for debugging
     """
-    versions = ""
-    for package, version in get_status_as_odict().items():
-        versions += "* {0}: {1}\n".format(package, version)
+    versions = "".join(
+        "* {0}: {1}\n".format(package, version)
+        for package, version in get_status_as_odict().items()
+    )
     return versions.strip()
 
 

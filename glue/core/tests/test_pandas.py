@@ -53,7 +53,7 @@ class TestPandasConversion(object):
         order = [comp.label for comp in d.components]
 
         frame = pd.DataFrame()
-        frame['Pixel Axis 0 [x]'] = np.ogrid[0:4]
+        frame['Pixel Axis 0 [x]'] = np.ogrid[:4]
         frame['n'] = np.array([4, 5, 6, 7])
         frame['c'] = ['a', 'b', 'c', 'd']
         frame['d'] = np.arange(4)

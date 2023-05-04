@@ -56,9 +56,7 @@ class DataCollectionItem(Item):
     def child(self, row):
         if row == DATA_IDX:
             return DataListItem(self.dc, self)
-        if row == SUBSET_IDX:
-            return SubsetListItem(self.dc, self)
-        return None
+        return SubsetListItem(self.dc, self) if row == SUBSET_IDX else None
 
 
 class DataListItem(Item):
@@ -183,11 +181,9 @@ class SubsetGroupItem(Item):
             return "Empty subset"
 
         atts = self.subset_group.subset_state.attributes
-        atts = [a for a in atts if isinstance(a, core.ComponentID)]
-
-        if len(atts) > 0:
+        if atts := [a for a in atts if isinstance(a, core.ComponentID)]:
             lbl = ', '.join(a.label for a in atts)
-            return "Selection on %s" % lbl
+            return f"Selection on {lbl}"
 
     @property
     def style(self):
@@ -265,16 +261,17 @@ class DataCollectionModel(QtCore.QAbstractItemModel, HubListener):
             if parent_item is None:
                 return QtCore.QModelIndex()
 
-        child_item = parent_item.child(row)
-        if child_item:
+        if child_item := parent_item.child(row):
             return self._make_index(row, column, child_item)
         else:
             return QtCore.QModelIndex()
 
     def _get_item(self, index):
-        if not index.isValid():
-            return None
-        return self._items.get(id(index.internalPointer()), None)
+        return (
+            self._items.get(id(index.internalPointer()), None)
+            if index.isValid()
+            else None
+        )
 
     def _make_index(self, row, column, item):
         if item is not None:
@@ -307,10 +304,7 @@ class DataCollectionModel(QtCore.QAbstractItemModel, HubListener):
 
     def flags(self, index=QtCore.QModelIndex()):
         item = self._get_item(index)
-        if item is None:
-            return Qt.NoItemFlags
-        else:
-            return item.flags
+        return Qt.NoItemFlags if item is None else item.flags
 
     def data(self, index, role):
         if not index.isValid():
@@ -363,9 +357,7 @@ class DataCollectionModel(QtCore.QAbstractItemModel, HubListener):
         :param data_number: position of data set to fetch, or None
         """
         base = self.index(DATA_IDX, 0)
-        if data_number is None:
-            return base
-        return self.index(data_number, 0, base)
+        return base if data_number is None else self.index(data_number, 0, base)
 
     def subsets_index(self, subset_number=None):
         """
@@ -376,17 +368,12 @@ class DataCollectionModel(QtCore.QAbstractItemModel, HubListener):
         """
         base = self.index(SUBSET_IDX, 0)
         assert isinstance(self._get_item(base), SubsetListItem)
-        if subset_number is None:
-            return base
-        return self.index(subset_number, 0, base)
+        return base if subset_number is None else self.index(subset_number, 0, base)
 
     def rowCount(self, index=QtCore.QModelIndex()):
         item = self._get_item(index)
 
-        if item is None:
-            return self.root.children_count
-
-        return item.children_count
+        return self.root.children_count if item is None else item.children_count
 
     def parent(self, index=None):
 

@@ -43,11 +43,8 @@ class RandomData(BaseCartesianData):
             if statistic == 'minimum':
                 return 0
             elif statistic == 'maximum':
-                if cid in self.pixel_component_ids:
-                    return self.shape[cid.axis]
-                else:
-                    return 1
-            elif statistic == 'mean' or statistic == 'median':
+                return self.shape[cid.axis] if cid in self.pixel_component_ids else 1
+            elif statistic in ['mean', 'median']:
                 return 0.5
             elif statistic == 'percentile':
                 return percentile / 100

@@ -38,7 +38,7 @@ def translate_pixel(data, pixel_coords, target_cid):
         translation.
     """
 
-    if not len(pixel_coords) == data.ndim:
+    if len(pixel_coords) != data.ndim:
         raise ValueError('The number of coordinates in pixel_coords does not '
                          'match the number of dimensions in data')
 
@@ -69,7 +69,7 @@ def translate_pixel(data, pixel_coords, target_cid):
         values_all.append(values)
         dimensions_all.extend(dimensions)
     # Unbroadcast arrays to smallest common shape for performance
-    if len(values_all) > 0:
+    if values_all:
         shape = values_all[0].shape
         values_all = broadcast_arrays_minimal(*values_all)
         results = link._using(*values_all)
@@ -152,15 +152,19 @@ def compute_fixed_resolution_buffer(data, bounds, target_data=None, target_cid=N
 
         current_pixel_hash = (data, target_data)
 
-        if cache_id in ARRAY_CACHE:
-            if ARRAY_CACHE[cache_id]['hash'] == current_array_hash:
-                return ARRAY_CACHE[cache_id]['array']
+        if (
+            cache_id in ARRAY_CACHE
+            and ARRAY_CACHE[cache_id]['hash'] == current_array_hash
+        ):
+            return ARRAY_CACHE[cache_id]['array']
 
         # To save time later, if the pixel cache doesn't match at the level of the
         # data and target_data, we just reset the cache.
-        if cache_id in PIXEL_CACHE:
-            if PIXEL_CACHE[cache_id]['hash'] != current_pixel_hash:
-                PIXEL_CACHE.pop(cache_id)
+        if (
+            cache_id in PIXEL_CACHE
+            and PIXEL_CACHE[cache_id]['hash'] != current_pixel_hash
+        ):
+            PIXEL_CACHE.pop(cache_id)
 
     # Start off by generating arrays of coordinates in the original dataset
     pixel_coords = [np.linspace(*bound) if isinstance(bound, tuple) else bound for bound in bounds]
@@ -249,7 +253,10 @@ def compute_fixed_resolution_buffer(data, bounds, target_data=None, target_cid=N
     if target_cid is not None and isinstance(data, Data) and isinstance(data.get_component(target_cid), DaskComponent):
 
         # Extract sub-region of data first, then fetch exact coordinate values
-        subregion = tuple([slice(np.nanmin(coord), np.nanmax(coord) + 1) for coord in translated_coords])
+        subregion = tuple(
+            slice(np.nanmin(coord), np.nanmax(coord) + 1)
+            for coord in translated_coords
+        )
 
         # Take subset_state into account, if present
         if subset_state is None:
@@ -259,19 +266,18 @@ def compute_fixed_resolution_buffer(data, bounds, target_data=None, target_cid=N
             array = data.get_mask(subset_state, view=subregion)
             invalid_value = False
 
-        translated_coords = tuple([coord - np.nanmin(coord) for coord in translated_coords])
+        translated_coords = tuple(
+            coord - np.nanmin(coord) for coord in translated_coords
+        )
 
         array = array[translated_coords]
 
+    elif subset_state is None:
+        array = data.get_data(target_cid, view=translated_coords).astype(float)
+        invalid_value = -np.inf
     else:
-
-        # Take subset_state into account, if present
-        if subset_state is None:
-            array = data.get_data(target_cid, view=translated_coords).astype(float)
-            invalid_value = -np.inf
-        else:
-            array = data.get_mask(subset_state, view=translated_coords)
-            invalid_value = False
+        array = data.get_mask(subset_state, view=translated_coords)
+        invalid_value = False
 
     if np.any(invalid_all):
         if not array.flags.writeable:
@@ -298,9 +304,5 @@ def compute_fixed_resolution_buffer(data, bounds, target_data=None, target_cid=N
 
         current_array_hash = current_array_hash[:1] + (cache_bounds,) + current_array_hash[2:]
 
-        if subset_state is None:
-            ARRAY_CACHE[cache_id] = {'hash': current_array_hash, 'array': array}
-        else:
-            ARRAY_CACHE[cache_id] = {'hash': current_array_hash, 'array': array}
-
+        ARRAY_CACHE[cache_id] = {'hash': current_array_hash, 'array': array}
     return array

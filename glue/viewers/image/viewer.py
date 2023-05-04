@@ -169,17 +169,11 @@ class MatplotlibImageMixin(object):
         return ScatterLayerArtist(axes, state, layer=layer, layer_state=None)
 
     def get_data_layer_artist(self, layer=None, layer_state=None):
-        if layer.ndim == 1:
-            cls = self._scatter_artist
-        else:
-            cls = ImageLayerArtist
+        cls = self._scatter_artist if layer.ndim == 1 else ImageLayerArtist
         return self.get_layer_artist(cls, layer=layer, layer_state=layer_state)
 
     def get_subset_layer_artist(self, layer=None, layer_state=None):
-        if layer.ndim == 1:
-            cls = self._scatter_artist
-        else:
-            cls = ImageSubsetLayerArtist
+        cls = self._scatter_artist if layer.ndim == 1 else ImageSubsetLayerArtist
         return self.get_layer_artist(cls, layer=layer, layer_state=layer_state)
 
     @staticmethod
@@ -205,15 +199,14 @@ class MatplotlibImageMixin(object):
 
     def _script_header(self):
 
-        imports = []
-        imports.append('import matplotlib.pyplot as plt')
-        imports.append('from glue.viewers.matplotlib.mpl_axes import init_mpl')
-        imports.append('from glue.viewers.image.composite_array import CompositeArray')
-        imports.append('from glue.viewers.image.frb_artist import imshow')
-        imports.append('from glue.viewers.matplotlib.mpl_axes import set_figure_colors')
-
-        script = ""
-        script += "fig, ax = init_mpl(wcs=True)\n"
+        imports = [
+            'import matplotlib.pyplot as plt',
+            'from glue.viewers.matplotlib.mpl_axes import init_mpl',
+            'from glue.viewers.image.composite_array import CompositeArray',
+            'from glue.viewers.image.frb_artist import imshow',
+            'from glue.viewers.matplotlib.mpl_axes import set_figure_colors',
+        ]
+        script = "" + "fig, ax = init_mpl(wcs=True)\n"
         script += "ax.set_aspect('{0}')\n".format(self.state.aspect)
 
         script += '\ncomposite = CompositeArray()\n'

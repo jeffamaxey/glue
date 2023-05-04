@@ -51,6 +51,7 @@ serialization protocols. Versions must be sequential integers,
 starting from 1.
 """
 
+
 import os
 import json
 import uuid
@@ -87,7 +88,7 @@ from glue.utils.matplotlib import MATPLOTLIB_GE_36
 if MATPLOTLIB_GE_36:
     from matplotlib import colormaps
 
-literals = tuple([type(None), float, int, bytes, bool])
+literals = type(None), float, int, bytes, bool
 literals += tuple(s for s in np.ScalarType if s not in (np.datetime64, np.timedelta64))
 
 builtin_iterables = (tuple, list, set)
@@ -179,16 +180,14 @@ class VersionedDict(object):
         """
         if version is None:
             if key not in self._data:
-                raise KeyError("No value associated with any version of %s"
-                               % key)
+                raise KeyError(f"No value associated with any version of {key}")
             vs = self._data[key]
             return vs[max(vs)]
 
         try:
             return self._data[key][version]
         except KeyError:
-            raise KeyError("No value associated with version %s of %s" %
-                           (version, key))
+            raise KeyError(f"No value associated with version {version} of {key}")
 
     def __getitem__(self, key):
         """Retrieve the highest-version value stored with a key
@@ -221,7 +220,7 @@ class VersionedDict(object):
         try:
             version = int(version)
         except ValueError:
-            raise ValueError("Version must be an integer: %s" % version)
+            raise ValueError(f"Version must be an integer: {version}")
         if version > 1 and (version - 1) not in self._data[item]:
             raise KeyError("Cannot assign version %i of item before adding "
                            "version %i" % (version, version - 1))
@@ -288,16 +287,17 @@ class GlueSerializer(object):
         if necessary.
         """
         if isinstance(obj, str):
-            return 'st__%s' % obj
+            return f'st__{obj}'
 
         if type(obj) in literals:
             return obj
 
         # Now check for list, set, and tuple, and skip if they don't contain
         # any non-literals.
-        if type(obj) in builtin_iterables:
-            if all(isinstance(x, literals) for x in flattened(obj)):
-                return as_nested_lists(obj)
+        if type(obj) in builtin_iterables and all(
+            isinstance(x, literals) for x in flattened(obj)
+        ):
+            return as_nested_lists(obj)
 
         oid = id(obj)
 
@@ -332,16 +332,17 @@ class GlueSerializer(object):
         the ID registry
         """
         if isinstance(obj, str):
-            return 'st__' + obj
+            return f'st__{obj}'
 
         if type(obj) in literals:
             return obj
 
         # Now check for list, set, and tuple, and skip if they don't contain
         # any non-literals
-        if type(obj) in builtin_iterables:
-            if all(isinstance(x, literals) for x in flattened(obj)):
-                return as_nested_lists(obj)
+        if type(obj) in builtin_iterables and all(
+            isinstance(x, literals) for x in flattened(obj)
+        ):
+            return as_nested_lists(obj)
 
         oid = id(obj)
         if oid in self._working:
@@ -357,8 +358,7 @@ class GlueSerializer(object):
         elif isinstance(obj, types.MethodType):
             result['_type'] = 'types.MethodType'
         else:
-            result['_type'] = "%s.%s" % (type(obj).__module__,
-                                         type(obj).__name__)
+            result['_type'] = f"{type(obj).__module__}.{type(obj).__name__}"
         if version > 1:
             result['_protocol'] = version
 
@@ -466,7 +466,7 @@ class GlueUnSerializer(object):
         typ = lookup_class_with_patches(rec['_type'])
 
         if typ is None:
-            raise GlueSerializeError("Unkonwn type %s" % rec['_type'])
+            raise GlueSerializeError(f"Unkonwn type {rec['_type']}")
 
         version = rec.get('_protocol', 1)
 
@@ -497,15 +497,15 @@ class GlueUnSerializer(object):
                 return self._objs[obj_id]
 
             if obj_id not in self._rec:
-                raise GlueSerializeError("Unrecognized object %s" % obj_id)
+                raise GlueSerializeError(f"Unrecognized object {obj_id}")
 
             if obj_id in self._working:
-                raise GlueSerializeError("Circular Reference detected: %s" % obj_id)
+                raise GlueSerializeError(f"Circular Reference detected: {obj_id}")
 
             self._working.add(obj_id)
             rec = self._rec[obj_id]
 
-        elif isinstance(obj_id, literals) or isinstance(obj_id, (tuple, list)):
+        elif isinstance(obj_id, (literals, tuple, list)):
             return obj_id
         else:
             rec = obj_id
@@ -530,9 +530,7 @@ class GlueUnSerializer(object):
                 self._working.remove(obj_id)
 
             if isgeneratorfunction(func):
-                for _ in gen:  # ... and finish constructing it
-                    pass
-
+                pass
         finally:
 
             # If anything in the try: block above fails, we need to remove the
@@ -568,14 +566,19 @@ loader = GlueUnSerializer.unserializes
 
 @saver(dict)
 def _save_dict(state, context):
-    return dict(contents=dict((context.id(key), context.id(value))
-                              for key, value in state.items()))
+    return dict(
+        contents={
+            context.id(key): context.id(value) for key, value in state.items()
+        }
+    )
 
 
 @loader(dict)
 def _load_dict(rec, context):
-    return dict((context.object(key), context.object(value))
-                for key, value in rec['contents'].items())
+    return {
+        context.object(key): context.object(value)
+        for key, value in rec['contents'].items()
+    }
 
 
 @saver(tuple)
@@ -638,9 +641,7 @@ def _save_composite_subset_state(state, context):
 @loader(CompositeSubsetState)
 def _load_composite_subset_state(rec, context):
     cls = lookup_class_with_patches(rec['_type'])
-    result = cls(context.object(rec['state1']),
-                 context.object(rec['state2']))
-    return result
+    return cls(context.object(rec['state1']), context.object(rec['state2']))
 
 
 @saver(SubsetState)
@@ -709,7 +710,7 @@ def _load_roi(roi, context):
 
 @saver(VisualAttributes)
 def _save_style(style, context):
-    return dict((a, getattr(style, a)) for a in style._atts)
+    return {a: getattr(style, a) for a in style._atts}
 
 
 @loader(VisualAttributes)
@@ -807,9 +808,8 @@ def _load_data_collection(rec, context):
             comp = data.get_component(cid)
 
             # Neihter in external nor in links overall
-            if rec.get('_protocol', 0) <= 3:
-                if comp.link not in internal:
-                    remove.append(cid)
+            if rec.get('_protocol', 0) <= 3 and comp.link not in internal:
+                remove.append(cid)
 
             if isinstance(comp.link, CoordinateComponentLink):
                 remove.append(cid)
@@ -953,8 +953,10 @@ def _save_data_3(data, context):
 def _load_data_3(rec, context):
     result = _load_data_2(rec, context)
     yield result
-    result._key_joins = dict((context.object(k), (context.object(v0), context.object(v1)))
-                             for k, v0, v1 in rec['_key_joins'])
+    result._key_joins = {
+        context.object(k): (context.object(v0), context.object(v1))
+        for k, v0, v1 in rec['_key_joins']
+    }
 
 
 @saver(Data, version=4)
@@ -978,8 +980,10 @@ def _load_data_4(rec, context):
     def load_cid_tuple(cids):
         return tuple(context.object(cid) for cid in cids)
 
-    result._key_joins = dict((context.object(k), (load_cid_tuple(v0), load_cid_tuple(v1)))
-                             for k, v0, v1 in rec['_key_joins'])
+    result._key_joins = {
+        context.object(k): (load_cid_tuple(v0), load_cid_tuple(v1))
+        for k, v0, v1 in rec['_key_joins']
+    }
     if 'uuid' in rec and rec['uuid'] is not None:
         result.uuid = rec['uuid']
     else:
@@ -1016,8 +1020,10 @@ def _load_data_5(rec, context):
     def load_cid_tuple(cids):
         return tuple(context.object(cid) for cid in cids)
 
-    result._key_joins = dict((context.object(k), (load_cid_tuple(v0), load_cid_tuple(v1)))
-                             for k, v0, v1 in rec['_key_joins'])
+    result._key_joins = {
+        context.object(k): (load_cid_tuple(v0), load_cid_tuple(v1))
+        for k, v0, v1 in rec['_key_joins']
+    }
     if 'uuid' in rec and rec['uuid'] is not None:
         result.uuid = rec['uuid']
     else:
@@ -1043,10 +1049,7 @@ def _save_pixel_component_id(cid, context):
 
 @loader(PixelComponentID)
 def _load_pixel_component_id(rec, context):
-    if 'axis' in rec:
-        axis = rec['axis']
-    else:  # backward-compatibility
-        axis = int(rec['label'].split()[2])
+    axis = rec['axis'] if 'axis' in rec else int(rec['label'].split()[2])
     return PixelComponentID(axis, rec['label'])
 
 
@@ -1124,8 +1127,7 @@ def _load_component_link(rec, context):
     to = list(map(context.object, rec['to']))[0]
     using = context.object(rec['using'])
     inverse = context.object(rec['inverse'])
-    result = ComponentLink(frm, to, using, inverse)
-    return result
+    return ComponentLink(frm, to, using, inverse)
 
 
 @saver(CoordinateComponentLink)
@@ -1151,7 +1153,7 @@ def _load_coordinate_component_link(rec, context):
 
 @saver(types.BuiltinFunctionType)
 def _save_builtin_function(function, context):
-    ref = "%s.%s" % (function.__module__, function.__name__)
+    ref = f"{function.__module__}.{function.__name__}"
     return {'function': ref}
 
 
@@ -1162,7 +1164,7 @@ def _load_builtin_function(rec, context):
 
 @saver(types.FunctionType)
 def _save_function(function, context):
-    ref = "%s.%s" % (function.__module__, function.__name__)
+    ref = f"{function.__module__}.{function.__name__}"
     if lookup_class_with_patches(ref) is function:
         l = lookup_class_with_patches(ref)
         return {'function': ref}
@@ -1242,24 +1244,30 @@ def apply_inplace_patches(rec):
     # always preserve the world coordinate components, and we do that by
     # setting force_coords to True.
     for key, value in rec.items():
-        if value['_type'] == 'glue.core.data.Data':
-            if 'coords' in value and value['coords'] is not None:
-                coords = rec[value['coords']]
-                if coords['_type'] == 'glue.core.coordinates.Coordinates':
-                    for cid, comp in value['components']:
-                        if 'log' in rec[comp]:
-                            load_log = rec[rec[comp]['log']]
-                            if 'force_coords' not in load_log:
-                                load_log['force_coords'] = True
+        if (
+            value['_type'] == 'glue.core.data.Data'
+            and 'coords' in value
+            and value['coords'] is not None
+        ):
+            coords = rec[value['coords']]
+            if coords['_type'] == 'glue.core.coordinates.Coordinates':
+                for cid, comp in value['components']:
+                    if 'log' in rec[comp]:
+                        load_log = rec[rec[comp]['log']]
+                        if 'force_coords' not in load_log:
+                            load_log['force_coords'] = True
 
         # The following accounts for the addition of the degree mode to the
         # full-sphere projection. Originally, this was only used for polar mode
         # and so the `coords` parameter was not needed. If this is not present,
         # the plot is polar and we can set coords to be ['x']
-        if value['_type'] == 'glue.core.roi_pretransforms.RadianTransform':
-            if 'state' in value and value['state'] is not None:
-                state = value['state']
-                if 'contents' in state and state['contents'] is not None:
-                    contents = state['contents']
-                    if 'st__coords' not in contents:
-                        contents['st__coords'] = ['x']
+        if (
+            value['_type'] == 'glue.core.roi_pretransforms.RadianTransform'
+            and 'state' in value
+            and value['state'] is not None
+        ):
+            state = value['state']
+            if 'contents' in state and state['contents'] is not None:
+                contents = state['contents']
+                if 'st__coords' not in contents:
+                    contents['st__coords'] = ['x']

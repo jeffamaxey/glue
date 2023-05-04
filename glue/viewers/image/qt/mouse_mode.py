@@ -69,15 +69,18 @@ class RoiClickAndDragMode(MouseMode):
                 continue
 
             subset_state = layer.state.layer.subset_state
-            if layer.visible and isinstance(subset_state, RoiSubsetState):
-                if subset_state.roi.contains(x, y):
-                    if event.button == _MPL_LEFT_CLICK:
-                        self._select_roi(subset_state.roi, roi_index, event)
-                        self._subset = layer.state.layer
-                    elif event.button == _MPL_RIGHT_CLICK:
-                        self._display_roi_context_menu(roi_index)
-                    self._selected = True
-                    break
+            if (
+                layer.visible
+                and isinstance(subset_state, RoiSubsetState)
+                and subset_state.roi.contains(x, y)
+            ):
+                if event.button == _MPL_LEFT_CLICK:
+                    self._select_roi(subset_state.roi, roi_index, event)
+                    self._subset = layer.state.layer
+                elif event.button == _MPL_RIGHT_CLICK:
+                    self._display_roi_context_menu(roi_index)
+                self._selected = True
+                break
             roi_index += 1
         else:
             self._selected = False

@@ -80,7 +80,10 @@ class MultiSliceWidgetHelper(object):
 
             for i in range(self.data.ndim):
 
-                if i == self.viewer_state.x_att.axis or i == self.viewer_state.y_att.axis:
+                if i in [
+                    self.viewer_state.x_att.axis,
+                    self.viewer_state.y_att.axis,
+                ]:
                     self._sliders.append(None)
                     continue
 

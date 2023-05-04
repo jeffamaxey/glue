@@ -28,13 +28,13 @@ class LinkMenu(QtWidgets.QMenu):
 
         super(LinkMenu, self).__init__(parent=parent)
 
-        categories = []
-        for function in link_function.members:
-            if len(function.output_labels) == 1:
-                categories.append(function.category)
-        for helper in link_helper.members:
-            categories.append(helper.category)
-        categories = ['General'] + sorted(set(categories) - set(['General']))
+        categories = [
+            function.category
+            for function in link_function.members
+            if len(function.output_labels) == 1
+        ]
+        categories.extend(helper.category for helper in link_helper.members)
+        categories = ['General'] + sorted(set(categories) - {'General'})
 
         for category in categories:
             submenu = self.addMenu(category)
@@ -161,11 +161,7 @@ class LinkEditorWidget(QtWidgets.QWidget):
 
         self._ui.link_details.setText(link.description)
 
-        if link.data1 is self.state.data1:
-            data1_names = link.names1
-        else:
-            data1_names = link.names2
-
+        data1_names = link.names1 if link.data1 is self.state.data1 else link.names2
         for idx, (label, combo) in enumerate(zip(self.att_names1, self.att_combos1)):
             if idx < len(data1_names):
                 combo.show()
@@ -177,11 +173,7 @@ class LinkEditorWidget(QtWidgets.QWidget):
                 label.hide()
                 combo.hide()
 
-        if link.data1 is self.state.data2:
-            data2_names = link.names1
-        else:
-            data2_names = link.names2
-
+        data2_names = link.names1 if link.data1 is self.state.data2 else link.names2
         for idx, (label, combo) in enumerate(zip(self.att_names2, self.att_combos2)):
             if idx < len(data2_names):
                 combo.show()

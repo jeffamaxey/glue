@@ -177,7 +177,7 @@ class Viewer(BaseViewer):
 
     def _sync_layer_artist_container(self, *args):
         # Remove layer artists that no longer have a matching layer state
-        layer_states = set(layer_state.layer for layer_state in self.state.layers)
+        layer_states = {layer_state.layer for layer_state in self.state.layers}
         for layer_artist in self._layer_artist_container:
             if layer_artist.layer not in layer_states:
                 self._layer_artist_container.remove(layer_artist)
@@ -227,12 +227,13 @@ class Viewer(BaseViewer):
     def remove_data(self, data):
         with delay_callback(self.state, 'layers'):
             for layer_state in self.state.layers[::-1]:
-                if isinstance(layer_state.layer, BaseData):
-                    if layer_state.layer is data:
-                        self.state.layers.remove(layer_state)
-                else:
-                    if layer_state.layer.data is data:
-                        self.state.layers.remove(layer_state)
+                if (
+                    isinstance(layer_state.layer, BaseData)
+                    and layer_state.layer is data
+                    or not isinstance(layer_state.layer, BaseData)
+                    and layer_state.layer.data is data
+                ):
+                    self.state.layers.remove(layer_state)
 
     def get_data_layer_artist(self, layer=None, layer_state=None):
         return self.get_layer_artist(self._data_artist_cls, layer=layer, layer_state=layer_state)
@@ -280,9 +281,8 @@ class Viewer(BaseViewer):
                 if isinstance(layer_artist.layer, Subset):
                     if layer_artist.layer.data is message.data:
                         layer_artist.update()
-                else:
-                    if layer_artist.layer is message.data:
-                        layer_artist.update()
+                elif layer_artist.layer is message.data:
+                    layer_artist.update()
 
     def _update_subset(self, message):
         if message.attribute == 'style':
@@ -429,7 +429,7 @@ class Viewer(BaseViewer):
 
     def export_as_script(self, filename):
 
-        data_filename = os.path.relpath(filename) + '.data'
+        data_filename = f'{os.path.relpath(filename)}.data'
 
         save(data_filename, self.session.data_collection)
 

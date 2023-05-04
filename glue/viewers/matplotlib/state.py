@@ -74,10 +74,7 @@ class MatplotlibLegendState(State):
 
     @property
     def edge_color(self):
-        if self.show_edge:
-            return to_rgba(self.text_color, self.alpha)
-        else:
-            return None
+        return to_rgba(self.text_color, self.alpha) if self.show_edge else None
 
     @property
     def draggable(self):
@@ -85,10 +82,7 @@ class MatplotlibLegendState(State):
 
     @property
     def mpl_location(self):
-        if self.location == 'draggable':
-            return 'best'
-        else:
-            return self.location
+        return 'best' if self.location == 'draggable' else self.location
 
     def update_axes_settings_from(self, state):
         self.visible = state.show_legend

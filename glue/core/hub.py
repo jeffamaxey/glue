@@ -98,10 +98,11 @@ class Hub(object):
 
         """
         if not isinstance(subscriber, HubListener):
-            raise InvalidSubscriber("Subscriber must be a HubListener: %s" %
-                                    type(subscriber))
+            raise InvalidSubscriber(
+                f"Subscriber must be a HubListener: {type(subscriber)}"
+            )
         if not isinstance(message_class, type) or \
-                not issubclass(message_class, Message):
+                    not issubclass(message_class, Message):
             raise InvalidMessage("message class must be a subclass of "
                                  "glue.Message: %s" % type(message_class))
         logging.getLogger(__name__).info("Subscribing %s to %s",
@@ -169,7 +170,7 @@ class Hub(object):
             messages = [msg for msg in subscriptions.keys() if
                         issubclass(type(message), msg)]
 
-            if len(messages) == 0:
+            if not messages:
                 continue
 
             # narrow to the most-specific message
@@ -229,7 +230,7 @@ class Hub(object):
             except AttributeError:
                 module = ''
             if not module.startswith('glue.core'):
-                print('Pickle warning: Hub removing subscription to %s' % s)
+                print(f'Pickle warning: Hub removing subscription to {s}')
                 result['_subscriptions'].pop(s)
         return result
 
@@ -250,7 +251,7 @@ class HubListener(object):
         hub.unsubscribe_all(self)
 
     def notify(self, message):
-        raise NotImplementedError("Message has no handler: %s" % message)
+        raise NotImplementedError(f"Message has no handler: {message}")
 
 
 def _mro_count(obj):

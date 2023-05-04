@@ -71,8 +71,7 @@ class SubsetMessage(Message):
     def __init__(self, sender, tag=None):
         from glue.core.subset import Subset
         if (not isinstance(sender, Subset)):
-            raise TypeError("Sender must be a subset: %s"
-                            % type(sender))
+            raise TypeError(f"Sender must be a subset: {type(sender)}")
         Message.__init__(self, sender, tag=tag)
         self.subset = self.sender
 
@@ -120,8 +119,7 @@ class DataMessage(Message):
     def __init__(self, sender, tag=None):
         from glue.core.data import BaseData
         if (not isinstance(sender, BaseData)):
-            raise TypeError("Sender must be a data instance: %s"
-                            % type(sender))
+            raise TypeError(f"Sender must be a data instance: {type(sender)}")
         Message.__init__(self, sender, tag=tag)
         self.data = self.sender
 
@@ -190,8 +188,7 @@ class DataCollectionMessage(Message):
     def __init__(self, sender, tag=None):
         from glue.core.data_collection import DataCollection
         if (not isinstance(sender, DataCollection)):
-            raise TypeError("Sender must be a DataCollection instance: %s"
-                            % type(sender))
+            raise TypeError(f"Sender must be a DataCollection instance: {type(sender)}")
         Message.__init__(self, sender, tag=tag)
 
 

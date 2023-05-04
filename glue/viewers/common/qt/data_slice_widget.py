@@ -98,11 +98,7 @@ class SliceWidget(QtWidgets.QWidget):
         else:
             self.state.use_world = not world_warning
 
-        if world_unit:
-            self.state.slider_unit = world_unit
-        else:
-            self.state.slider_unit = ''
-
+        self.state.slider_unit = world_unit if world_unit else ''
         self._play_speed = 0
 
         self.set_label_from_slider()

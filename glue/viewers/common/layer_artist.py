@@ -59,18 +59,11 @@ class LayerArtist(LayerArtistBase):
         empty set the second time.
         """
 
-        # Figure out which attributes are different from before. Ideally we
-        # shouldn't need this but some methods in layer artists are called
-        # multiple times if an attribute is changed due to x_att changing then
-        # hist_x_min, hist_x_max, etc. This method is called pop because it
-        # returns the list of changed properties and resets the cache.
-
-        changed = set()
-
-        for key, value in self._viewer_state.as_dict().items():
-            if value != self._last_viewer_state.get(key, None):
-                changed.add(key)
-
+        changed = {
+            key
+            for key, value in self._viewer_state.as_dict().items()
+            if value != self._last_viewer_state.get(key, None)
+        }
         for key, value in self.state.as_dict().items():
             if value != self._last_layer_state.get(key, None):
                 changed.add(key)

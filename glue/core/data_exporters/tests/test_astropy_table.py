@@ -7,11 +7,12 @@ from glue.core import Data
 from ..astropy_table import (ipac_exporter, latex_exporter,
                              votable_exporter, fits_exporter)
 
-EXPORTERS = {}
-EXPORTERS['ascii.ipac'] = ipac_exporter
-EXPORTERS['ascii.latex'] = latex_exporter
-EXPORTERS['votable'] = votable_exporter
-EXPORTERS['fits'] = fits_exporter
+EXPORTERS = {
+    'ascii.ipac': ipac_exporter,
+    'ascii.latex': latex_exporter,
+    'votable': votable_exporter,
+    'fits': fits_exporter,
+}
 
 
 @pytest.mark.parametrize('fmt', EXPORTERS)

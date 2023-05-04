@@ -295,9 +295,7 @@ class MatplotlibViewerMixin(object):
 
         # Get axes aspect ratio
         l, b, w, h = self.axes.get_position().bounds
-        axes_ratio = fig_aspect * (h / w)
-
-        return axes_ratio
+        return fig_aspect * (h / w)
 
     def _on_resize(self, *args):
         self.state._set_axes_aspect_ratio(self.axes_ratio)
@@ -315,7 +313,11 @@ class MatplotlibViewerMixin(object):
 
     def _script_header(self):
         state_dict = self.state.as_dict()
-        proj = "'" + self.state.plot_mode + "'" if hasattr(self.state, 'plot_mode') else "None"
+        proj = (
+            f"'{self.state.plot_mode}'"
+            if hasattr(self.state, 'plot_mode')
+            else "None"
+        )
         state_dict['projection'] = proj
         return ['import matplotlib',
                 "matplotlib.use('Agg')",
@@ -324,15 +326,18 @@ class MatplotlibViewerMixin(object):
                 'from glue.viewers.matplotlib.mpl_axes import set_figure_colors'], SCRIPT_HEADER.format(**state_dict)
 
     def _script_footer(self):
-        mode = 'rectilinear' if not hasattr(self.state, 'plot_mode') else self.state.plot_mode
+        mode = (
+            self.state.plot_mode
+            if hasattr(self.state, 'plot_mode')
+            else 'rectilinear'
+        )
         state_dict = self.state.as_dict()
         temp_str = ''
         if mode not in ['aitoff', 'hammer', 'lambert', 'mollweide', 'polar']:
             x_log_str = 'log' if self.state.x_log else 'linear'
-            temp_str += "ax.set_xscale('" + x_log_str + "')\n"
-        if mode not in ['aitoff', 'hammer', 'lambert', 'mollweide', 'polar']:
+            temp_str += f"ax.set_xscale('{x_log_str}" + "')\n"
             y_log_str = 'log' if self.state.y_log else 'linear'
-            temp_str += "ax.set_yscale('" + y_log_str + "')\n"
+            temp_str += f"ax.set_yscale('{y_log_str}" + "')\n"
         if mode == 'polar':
             state_dict['x_axislabel'] = ''
             state_dict['y_axislabel'] = ''

@@ -79,7 +79,7 @@ class ImageLayerArtist(BaseImageLayerArtist):
 
     @property
     def label(self):
-        return "%s (%s)" % (self.layer.label, self.state.attribute.label)
+        return f"{self.layer.label} ({self.state.attribute.label})"
 
     def get_layer_color(self):
         if self._viewer_state.color_mode == 'One color per layer':

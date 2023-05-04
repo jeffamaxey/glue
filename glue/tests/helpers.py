@@ -23,7 +23,9 @@ def make_skipper(module, label=None, version=None):
         installed = True
     except (ImportError, AssertionError):
         installed = False
-    return installed, pytest.mark.skipif(str(not installed), reason='Requires %s' % label)
+    return installed, pytest.mark.skipif(
+        str(not installed), reason=f'Requires {label}'
+    )
 
 
 ASTROPY_INSTALLED, requires_astropy = make_skipper('astropy',

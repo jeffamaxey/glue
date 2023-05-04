@@ -34,8 +34,7 @@ def aspect_ratio(axes):
 def data_to_norm(axes, x, y):
     xy = np.column_stack((np.asarray(x).ravel(), np.asarray(y).ravel()))
     pixel = axes.transData.transform(xy)
-    norm = axes.transAxes.inverted().transform(pixel)
-    return norm
+    return axes.transAxes.inverted().transform(pixel)
 
 
 def data_to_pixel(axes, x, y):
@@ -316,17 +315,16 @@ class RectangularROI(Roi):
         Returns vertices `vx`, `vy` of the rectangular region represented as a polygon,
         where each is an array of vertex coordinates in `x` and `y`.
         """
-        if self.defined():
-            if np.isclose(self.theta % np.pi, 0.0, atol=1e-9):
-                return (np.array([self.xmin, self.xmax, self.xmax, self.xmin, self.xmin]),
-                        np.array([self.ymin, self.ymin, self.ymax, self.ymax, self.ymin]))
-            else:
-                corners = (np.array([-1, 1, 1, -1, -1]) * self.width() / 2,
-                           np.array([-1, -1, 1, 1, -1]) * self.height() / 2)
-            return tuple((rotation_matrix_2d(self.theta) @ corners) +
-                         np.array(self.center()).reshape((2, 1)))
-        else:
+        if not self.defined():
             return [], []
+        if np.isclose(self.theta % np.pi, 0.0, atol=1e-9):
+            return (np.array([self.xmin, self.xmax, self.xmax, self.xmin, self.xmin]),
+                    np.array([self.ymin, self.ymin, self.ymax, self.ymax, self.ymin]))
+        else:
+            corners = (np.array([-1, 1, 1, -1, -1]) * self.width() / 2,
+                       np.array([-1, -1, 1, 1, -1]) * self.height() / 2)
+        return tuple((rotation_matrix_2d(self.theta) @ corners) +
+                     np.array(self.center()).reshape((2, 1)))
 
     def transformed(self, xfunc=None, yfunc=None):
         xmin = self.xmin if xfunc is None else xfunc(self.xmin)
@@ -385,7 +383,7 @@ class RangeROI(Roi):
             return "%0.3f < %s < %0.3f" % (self.min, self.ori,
                                            self.max)
         else:
-            return "Undefined %s" % type(self).__name__
+            return f"Undefined {type(self).__name__}"
 
     def range(self):
         return self.min, self.max
@@ -425,13 +423,12 @@ class RangeROI(Roi):
         return self.min is not None and self.max is not None
 
     def to_polygon(self):
-        if self.defined():
-            on = [self.min, self.max, self.max, self.min, self.min]
-            off = [-1e100, -1e100, 1e100, 1e100, -1e100]
-            x, y = (on, off) if (self.ori == 'x') else (off, on)
-            return x, y
-        else:
+        if not self.defined():
             return [], []
+        on = [self.min, self.max, self.max, self.min, self.min]
+        off = [-1e100, -1e100, 1e100, 1e100, -1e100]
+        x, y = (on, off) if (self.ori == 'x') else (off, on)
+        return x, y
 
     def __gluestate__(self, context):
         return dict(ori=self.ori, min=context.do(self.min), max=context.do(self.max))
@@ -779,9 +776,9 @@ class PolygonalROI(VertexROIBase):
     """
 
     def __str__(self):
-        result = 'Polygonal ROI ('
-        result += ','.join(['(%s, %s)' % (x, y)
-                            for x, y in zip(self.vx, self.vy)])
+        result = 'Polygonal ROI (' + ','.join(
+            [f'({x}, {y})' for x, y in zip(self.vx, self.vy)]
+        )
         result += ')'
         return result
 
@@ -793,8 +790,7 @@ class PolygonalROI(VertexROIBase):
         if not isinstance(y, np.ndarray):
             y = np.asarray(y)
 
-        result = points_inside_poly(x, y, np.asarray(self.vx), np.asarray(self.vy))
-        return result
+        return points_inside_poly(x, y, np.asarray(self.vx), np.asarray(self.vy))
 
     # There are several possible definitions of the centre; `mean()` is
     # easiest to calculate, but not robust against adding vertices.
@@ -829,12 +825,9 @@ class PolygonalROI(VertexROIBase):
         # Shoelace formula; in case where the start vertex is not already duplicated
         # at the end, final term added manually to avoid an array copy.
         area_main = np.dot(x_[:-1], y_[1:]) - np.dot(y_[:-1], x_[1:])
-        if not (self.vx[-1] == self.vx[0] and self.vy[:-1] == self.vy[0]):
+        if self.vx[-1] != self.vx[0] or self.vy[:-1] != self.vy[0]:
             area_main += x_[-1] * y_[0] - y_[-1] * x_[0]
-        if signed:
-            return 0.5 * area_main
-        else:
-            return 0.5 * np.abs(area_main)
+        return 0.5 * area_main if signed else 0.5 * np.abs(area_main)
 
     def centroid(self):
         """Return centroid (centre of mass) of polygon."""
@@ -886,10 +879,7 @@ class PolygonalROI(VertexROIBase):
         theta = 0 if theta is None else theta
         # For linear (1D) "polygons" centroid is not defined.
         if center is None:
-            if self.area() == 0:
-                center = self.mean()
-            else:
-                center = self.centroid()
+            center = self.mean() if self.area() == 0 else self.centroid()
         dtheta = theta - self.theta
 
         if self.defined() and not np.isclose(dtheta % np.pi, 0.0, atol=1e-9):
@@ -988,9 +978,7 @@ class Projected3dROI(Roi):
 class Path(VertexROIBase):
 
     def __str__(self):
-        result = 'Path ('
-        result += ','.join(['(%s, %s)' % (x, y)
-                            for x, y in zip(self.vx, self.vy)])
+        result = 'Path (' + ','.join([f'({x}, {y})' for x, y in zip(self.vx, self.vy)])
         result += ')'
         return result
 
@@ -1190,9 +1178,8 @@ class MplRectangularROI(AbstractMplRoi):
         if not self._mid_selection or event.inaxes != self._axes:
             return False
 
-        if event.key == SCRUBBING_KEY:
-            if not self._roi.defined():
-                return False
+        if event.key == SCRUBBING_KEY and not self._roi.defined():
+            return False
 
         if self._data_space:
             xval = event.xdata
@@ -1233,7 +1220,7 @@ class MplRectangularROI(AbstractMplRoi):
             self._patch.set_visible(False)
 
     def __str__(self):
-        return "MPL Rectangle: %s" % self._patch
+        return f"MPL Rectangle: {self._patch}"
 
 
 class MplXRangeROI(AbstractMplRoi):
@@ -1303,9 +1290,8 @@ class MplXRangeROI(AbstractMplRoi):
         if not self._mid_selection or event.inaxes != self._axes:
             return False
 
-        if event.key == SCRUBBING_KEY:
-            if not self._roi.defined():
-                return False
+        if event.key == SCRUBBING_KEY and not self._roi.defined():
+            return False
 
         if self._data_space:
             xval = event.xdata
@@ -1409,9 +1395,8 @@ class MplYRangeROI(AbstractMplRoi):
         if not self._mid_selection or event.inaxes != self._axes:
             return False
 
-        if event.key == SCRUBBING_KEY:
-            if not self._roi.defined():
-                return False
+        if event.key == SCRUBBING_KEY and not self._roi.defined():
+            return False
 
         if self._data_space:
             yval = event.ydata
@@ -1534,9 +1519,8 @@ class MplCircularROI(AbstractMplRoi):
         xi = xy[0, 0]
         yi = xy[0, 1]
 
-        if event.key == SCRUBBING_KEY:
-            if not self._roi.defined():
-                return False
+        if event.key == SCRUBBING_KEY and not self._roi.defined():
+            return False
 
         if self._scrubbing:
             self._roi.set_center(xi + self._dx, yi + self._dy)
@@ -1667,9 +1651,8 @@ class MplPolygonalROI(AbstractMplRoi):
         if not self._mid_selection or event.inaxes != self._axes:
             return False
 
-        if event.key == SCRUBBING_KEY:
-            if not self._roi.defined():
-                return False
+        if event.key == SCRUBBING_KEY and not self._roi.defined():
+            return False
 
         if self._data_space:
             xval = event.xdata
@@ -1782,10 +1765,7 @@ class CategoricalROI(Roi):
         """
 
         try:
-            if isinstance(indata, CategoricalComponent):
-                return indata.data
-            else:
-                return indata[:]
+            return indata.data if isinstance(indata, CategoricalComponent) else indata[:]
         except AttributeError:
             return np.asarray(indata)
 
@@ -1808,11 +1788,10 @@ class CategoricalROI(Roi):
         """
         if self.categories is None or len(self.categories) == 0:
             return np.zeros(x.shape, dtype=bool)
-        else:
-            check = self._categorical_helper(x)
-            index = np.minimum(np.searchsorted(self.categories, check),
-                               len(self.categories) - 1)
-            return self.categories[index] == check
+        check = self._categorical_helper(x)
+        index = np.minimum(np.searchsorted(self.categories, check),
+                           len(self.categories) - 1)
+        return self.categories[index] == check
 
     def update_categories(self, categories):
         self.categories = np.unique(self._categorical_helper(categories))

@@ -128,10 +128,7 @@ def test_load_viewers_04():
 
     assert labels == ['1D Histogram', '2D Image', '2D Scatter']
 
-    viewers = {}
-    for x in ga.viewers[0]:
-        viewers[x.LABEL] = x
-
+    viewers = {x.LABEL: x for x in ga.viewers[0]}
     h = viewers['1D Histogram']
     assert h.viewer_size == (1235, 531)
     assert h.position == (0, 535)

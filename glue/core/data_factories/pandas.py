@@ -107,7 +107,7 @@ def pandas_read_table(path, **kwargs):
 
     if fallback is not None:
         return panda_process(fallback)
-    raise IOError("Could not parse %s using pandas" % path)
+    raise IOError(f"Could not parse {path} using pandas")
 
 
 @data_translator(pd.DataFrame)

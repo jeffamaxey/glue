@@ -45,7 +45,10 @@ class SaveDataState(State):
             if exporter.extension == '':
                 return "{0} (*)".format(exporter.label)
             else:
-                return "{0} ({1})".format(exporter.label, ' '.join('*.' + ext for ext in exporter.extension))
+                return "{0} ({1})".format(
+                    exporter.label,
+                    ' '.join(f'*.{ext}' for ext in exporter.extension),
+                )
 
         SaveDataState.exporter.set_choices(self, exporters)
         SaveDataState.exporter.set_display_func(self, display_func)
@@ -57,10 +60,7 @@ class SaveDataState(State):
     def _sync_subsets(self):
 
         def display_func(subset):
-            if subset is None:
-                return "All data (no subsets applied)"
-            else:
-                return subset.label
+            return "All data (no subsets applied)" if subset is None else subset.label
 
         subsets = [None] + list(self.data.subsets)
 
@@ -137,10 +137,7 @@ class SaveDataDialog(QDialog):
             item = self.ui.list_component.item(idx)
             if item.checkState() == Qt.Checked:
                 components.append(self.state.data.id[item.text()])
-        if self.state.subset is None:
-            data = self.state.data
-        else:
-            data = self.state.subset
+        data = self.state.data if self.state.subset is None else self.state.subset
         export_data(data, components=components, exporter=self.state.exporter.function)
         super(SaveDataDialog, self).accept()
 

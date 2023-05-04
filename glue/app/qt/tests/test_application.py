@@ -353,7 +353,7 @@ class TestApplicationSession(object):
         l1, l2, l3 = w.layers
         l1.zorder, l2.zorder = l2.zorder, l1.zorder
         l3.visible = False
-        assert l3.visible is False
+        assert not l3.visible
         copy2 = self.check_clone(app)
         assert copy2.viewers[0][0].layers[-1].visible is False
 

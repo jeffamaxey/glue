@@ -57,7 +57,7 @@ class TestEditSubsetMode(object):
 
         self.edit_mode.mode = ReplaceMode
 
-        for i in range(5):
+        for _ in range(5):
             self.data.new_subset()
         self.edit_mode.edit_subset = list(self.data.subsets)
 
@@ -71,7 +71,7 @@ class TestEditSubsetMode(object):
 
         self.edit_mode.mode = ReplaceMode
 
-        for i in range(5):
+        for _ in range(5):
             self.data.new_subset()
         self.edit_mode.edit_subset = list(self.data.subsets)
 

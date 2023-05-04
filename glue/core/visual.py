@@ -109,10 +109,7 @@ class VisualAttributes(HasCallbackProperties):
 
     @color.setter
     def color(self, value):
-        if isinstance(value, str):
-            self._color = value.lower()
-        else:
-            self._color = value
+        self._color = value.lower() if isinstance(value, str) else value
 
     @callback_property
     def preferred_cmap(self):
@@ -168,8 +165,7 @@ class VisualAttributes(HasCallbackProperties):
     @linestyle.setter
     def linestyle(self, value):
         if value not in VALID_LINESTYLES:
-            raise Exception("Line style should be one of %s" %
-                            '/'.join(VALID_LINESTYLES))
+            raise Exception(f"Line style should be one of {'/'.join(VALID_LINESTYLES)}")
         self._linestyle = value
 
     @callback_property
@@ -209,11 +205,18 @@ class VisualAttributes(HasCallbackProperties):
     def __setattr__(self, attribute, value):
 
         # Check that the attribute exists (don't allow new attributes)
-        allowed = set(['color', 'linewidth', 'linestyle',
-                       'alpha', 'parent', 'marker', 'markersize',
-                       'preferred_cmap'])
+        allowed = {
+            'color',
+            'linewidth',
+            'linestyle',
+            'alpha',
+            'parent',
+            'marker',
+            'markersize',
+            'preferred_cmap',
+        }
         if attribute not in allowed and not attribute.startswith('_'):
-            raise Exception("Attribute %s does not exist" % attribute)
+            raise Exception(f"Attribute {attribute} does not exist")
 
         changed = getattr(self, attribute, None) != value
         super(VisualAttributes, self).__setattr__(attribute, value)

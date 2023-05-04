@@ -105,10 +105,7 @@ def view_shape(shape, view):
     view : slice
         A valid index into a Numpy array, or None
     """
-    if view is None:
-        return shape
-    else:
-        return np.broadcast_to(1, shape)[view].shape
+    return shape if view is None else np.broadcast_to(1, shape)[view].shape
 
 
 def stack_view(shape, *views):
@@ -278,11 +275,10 @@ def iterate_chunks(shape, chunk_shape=None, n_max=None):
         raise ValueError('Either chunk_shape or n_max should be specified (not both)')
     elif chunk_shape is None:
         chunk_shape = find_chunk_shape(shape, n_max)
-    else:
-        if len(chunk_shape) != len(shape):
-            raise ValueError('chunk_shape should have the same length as shape')
-        elif any(x > y for (x, y) in zip(chunk_shape, shape)):
-            raise ValueError('chunk_shape should fit within shape')
+    elif len(chunk_shape) != len(shape):
+        raise ValueError('chunk_shape should have the same length as shape')
+    elif any(x > y for (x, y) in zip(chunk_shape, shape)):
+        raise ValueError('chunk_shape should fit within shape')
 
     ndim = len(chunk_shape)
     start_index = [0] * ndim
@@ -293,10 +289,7 @@ def iterate_chunks(shape, chunk_shape=None, n_max=None):
 
         end_index = [min(start_index[i] + chunk_shape[i], shape[i]) for i in range(ndim)]
 
-        slices = tuple([slice(start_index[i], end_index[i]) for i in range(ndim)])
-
-        yield slices
-
+        yield tuple(slice(start_index[i], end_index[i]) for i in range(ndim))
         # Update chunk index. What we do is to increment the
         # counter for the first dimension, and then if it
         # exceeds the number of elements in that direction,
@@ -355,7 +348,7 @@ def combine_slices(slice1, slice2, length):
             if len(indices) == 2:
                 break
 
-    if len(indices) == 0:
+    if not indices:
         return slice(0, 0, 1)
     elif len(indices) == 1:
         return slice(indices[0], indices[0] + 1, 1)
@@ -404,13 +397,9 @@ def nansum_with_nan_for_empty(values, axis=None):
     result = np.nansum(values, axis=axis)
     reset = np.sum(~np.isnan(values), axis=axis)
     if np.isscalar(result):
-        if reset == 0:
-            return np.nan
-        else:
-            return result
-    else:
-        result[reset == 0] = np.nan
-        return result
+        return np.nan if reset == 0 else result
+    result[reset == 0] = np.nan
+    return result
 
 
 PLAIN_FUNCTIONS = {'minimum': np.min,
@@ -550,10 +539,7 @@ class categorical_ndarray(np.ndarray):
     def codes(self):
         if not hasattr(self, '_codes'):
             self._update_categories_and_codes()
-        if self._jitter is None:
-            return self._codes
-        else:
-            return self._codes + self._jitter
+        return self._codes if self._jitter is None else self._codes + self._jitter
 
     def jitter(self, method=None):
         """
@@ -576,10 +562,7 @@ class categorical_ndarray(np.ndarray):
 
 
 def ensure_numerical(values):
-    if isinstance(values, categorical_ndarray):
-        return values.codes
-    else:
-        return values
+    return values.codes if isinstance(values, categorical_ndarray) else values
 
 
 def index_lookup(data, items):
@@ -625,7 +608,9 @@ def random_views_for_dask_array(array, n_random_samples, n_chunks):
     indices = [np.random.randint(dimsize, size=n_chunks) for dimsize in array.numblocks]
 
     # Determine the boundaries of chunks along each dimension
-    chunk_indices = [np.hstack([0, np.cumsum([size for size in sizes])]) for sizes in array.chunks]
+    chunk_indices = [
+        np.hstack([0, np.cumsum(list(sizes))]) for sizes in array.chunks
+    ]
 
     n_per_chunk = n_random_samples // n_chunks
 

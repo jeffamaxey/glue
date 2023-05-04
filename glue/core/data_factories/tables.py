@@ -33,4 +33,4 @@ def tabular_data(path, **kwargs):
         except Exception:
             pass
     else:
-        raise IOError("Could not parse file: %s" % path)
+        raise IOError(f"Could not parse file: {path}")

@@ -46,10 +46,7 @@ class ThetaRadianFormatter(mticker.Formatter):
         d, n = f.numerator, f.denominator
         d = d if n >= 0 else -d
         n = abs(n)
-        if cls._check_valid(n, d):
-            return n, d
-
-        return None, None
+        return (n, d) if cls._check_valid(n, d) else (None, None)
 
     @classmethod
     def rad_fn(cls, x, digits=2):
@@ -156,15 +153,12 @@ def split_component_view(arg):
     view
         Tuple of slices, slice scalar, or view
     """
-    if isinstance(arg, tuple):
-        if len(arg) == 1:
-            raise TypeError("Expected a scalar or >length-1 tuple, "
-                            "got length-1 tuple")
-        if len(arg) == 2:
-            return arg[0], arg[1]
-        return arg[0], arg[1:]
-    else:
+    if not isinstance(arg, tuple):
         return arg, None
+    if len(arg) == 1:
+        raise TypeError("Expected a scalar or >length-1 tuple, "
+                        "got length-1 tuple")
+    return (arg[0], arg[1]) if len(arg) == 2 else (arg[0], arg[1:])
 
 
 def join_component_view(component, view):
@@ -257,12 +251,11 @@ def facet_subsets(data_collection, cid, lo=None, hi=None, steps=5,
             except IncompatibleAttribute:
                 continue
         else:
-            raise ValueError("Cannot infer data limits for ComponentID %s"
-                             % cid)
-        if lo is None:
-            lo = np.nanmin(vals)
-        if hi is None:
-            hi = np.nanmax(vals)
+            raise ValueError(f"Cannot infer data limits for ComponentID {cid}")
+    if lo is None:
+        lo = np.nanmin(vals)
+    if hi is None:
+        hi = np.nanmax(vals)
 
     reverse = lo > hi
     if log:
@@ -285,13 +278,12 @@ def facet_subsets(data_collection, cid, lo=None, hi=None, steps=5,
                 states.append((cid <= rng[i]) & (cid >= rng[i + 1]))
                 labels.append(prefix + '{0}<={1}<={2}'.format(rng[i + 1], cid, rng[i]))
 
+        elif i < steps - 1:
+            states.append((cid >= rng[i]) & (cid < rng[i + 1]))
+            labels.append(prefix + '{0}<={1}<{2}'.format(rng[i], cid, rng[i + 1]))
         else:
-            if i < steps - 1:
-                states.append((cid >= rng[i]) & (cid < rng[i + 1]))
-                labels.append(prefix + '{0}<={1}<{2}'.format(rng[i], cid, rng[i + 1]))
-            else:
-                states.append((cid >= rng[i]) & (cid <= rng[i + 1]))
-                labels.append(prefix + '{0}<={1}<={2}'.format(rng[i], cid, rng[i + 1]))
+            states.append((cid >= rng[i]) & (cid <= rng[i + 1]))
+            labels.append(prefix + '{0}<={1}<={2}'.format(rng[i], cid, rng[i + 1]))
 
     result = []
     for lbl, s in zip(labels, states):
@@ -366,7 +358,7 @@ def small_view(data, attribute):
     Extract a downsampled view from a dataset, for quick statistical summaries
     """
     shp = data.shape
-    view = tuple([slice(None, None, np.intp(max(s / 50, 1))) for s in shp])
+    view = tuple(slice(None, None, np.intp(max(s / 50, 1))) for s in shp)
     return data[attribute, view]
 
 
@@ -375,7 +367,7 @@ def small_view_array(data):
     Same as small_view, except using a numpy array as input
     """
     shp = data.shape
-    view = tuple([slice(None, None, np.intp(max(s / 50, 1))) for s in shp])
+    view = tuple(slice(None, None, np.intp(max(s / 50, 1))) for s in shp)
     return np.asarray(data)[view]
 
 
@@ -405,9 +397,8 @@ def visible_limits(artists, axis):
         assert isinstance(xy, tuple)
         val = xy[axis]
         if val.size > 0:
-            data.append(xy[axis])
-
-    if len(data) == 0:
+            data.append(val)
+    if not data:
         return
     data = np.hstack(data)
     if data.size == 0:
@@ -425,27 +416,21 @@ def visible_limits(artists, axis):
 
 
 def tick_linker(all_categories, pos, *args):
-    # We need to take care to ignore negative indices since these would actually
-    # 'work' 'when accessing all_categories, but we need to avoid that.
     if pos < 0 or pos >= len(all_categories):
         return ''
-    else:
-        try:
-            pos = np.round(pos)
-            label = all_categories[int(pos)]
-            if isinstance(label, bytes):
-                return label.decode('ascii')
-            else:
-                return label
-        except IndexError:
-            return ''
+    try:
+        pos = np.round(pos)
+        label = all_categories[int(pos)]
+        return label.decode('ascii') if isinstance(label, bytes) else label
+    except IndexError:
+        return ''
 
 
 def polar_tick_alignment(value, radians):
     if radians:
         value = value * 180 / np.pi
 
-    if value < 90 or 270 < value:
+    if value < 90 or value > 270:
         return "left"
     elif 90 < value < 270:
         return "right"

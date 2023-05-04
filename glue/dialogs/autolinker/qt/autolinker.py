@@ -84,8 +84,6 @@ class AutoLinkPreview(QtWidgets.QDialog):
             widget._ui.exec_()
         elif mode == 'always_accept':
             data_collection.add_link(links)
-        else:
-            pass
 
 
 def run_autolinker(data_collection):

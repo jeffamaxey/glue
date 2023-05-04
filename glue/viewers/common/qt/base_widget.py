@@ -152,10 +152,7 @@ class BaseQtViewerWidget(QtWidgets.QMainWindow):
         """
         Size of the viewer as a tuple of ``(width, height)``
         """
-        if self._mdi_wrapper is not None:
-            sz = self._mdi_wrapper.size()
-        else:
-            sz = self.size()
+        sz = self._mdi_wrapper.size() if self._mdi_wrapper is not None else self.size()
         return sz.width(), sz.height()
 
     @viewer_size.setter

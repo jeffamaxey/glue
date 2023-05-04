@@ -49,7 +49,7 @@ class CompletionTextEdit(QtWidgets.QTextEdit):
 
         existing = self.text_under_cursor()
 
-        completion = completion[len(existing):] + " "
+        completion = f"{completion[len(existing):]} "
 
         self.setTextCursor(tc)
 
@@ -63,13 +63,11 @@ class CompletionTextEdit(QtWidgets.QTextEdit):
         pos1 = tc.position()
         if pos1 == 0 or text[pos1 - 1] == ' ':
             return ''
-        else:
-            sub = text[:pos1]
-            if ' ' in sub:
-                pos2 = sub.rindex(' ')
-                return sub[pos2 + 1:]
-            else:
-                return sub
+        sub = text[:pos1]
+        if ' ' not in sub:
+            return sub
+        pos2 = sub.rindex(' ')
+        return sub[pos2 + 1:]
 
     # The following methods override methods in QTextEdit and should not be
     # renamed.
@@ -81,15 +79,20 @@ class CompletionTextEdit(QtWidgets.QTextEdit):
 
     def keyPressEvent(self, event):
 
-        if self.completer and self.completer.popup().isVisible():
-            if event.key() in (
-                    Qt.Key_Enter,
-                    Qt.Key_Return,
-                    Qt.Key_Escape,
-                    Qt.Key_Tab,
-                    Qt.Key_Backtab):
-                event.ignore()
-                return
+        if (
+            self.completer
+            and self.completer.popup().isVisible()
+            and event.key()
+            in (
+                Qt.Key_Enter,
+                Qt.Key_Return,
+                Qt.Key_Escape,
+                Qt.Key_Tab,
+                Qt.Key_Backtab,
+            )
+        ):
+            event.ignore()
+            return
 
         # Check if TAB has been pressed
         is_shortcut = event.key() == Qt.Key_Tab

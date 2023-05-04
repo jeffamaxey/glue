@@ -70,18 +70,12 @@ def discover_links(data, links):
 
     cids = set(data.main_components + data.coordinate_components)
     cid_links = {}
-    depth = {}
-    for cid in cids:
-        depth[cid] = 0
-
+    depth = {cid: 0 for cid in cids}
     while True:
         for link in accessible_links(cids, links):
             from_ = set(link.get_from_ids())
             to_ = link.get_to_id()
-            if len(from_) > 0:
-                cost = max([depth[f] for f in from_]) + 1
-            else:
-                cost = 1
+            cost = max(depth[f] for f in from_) + 1 if from_ else 1
             if to_ in cids and cost >= depth[to_]:
                 continue
             depth[to_] = cost
@@ -147,11 +141,8 @@ class LinkManager(HubListener):
                            handler=self._data_removed)
 
     def _component_removed(self, msg):
-        remove = []
         remove_cid = msg.component_id
-        for link in self._external_links:
-            if remove_cid in link:
-                remove.append(link)
+        remove = [link for link in self._external_links if remove_cid in link]
         for link in remove:
             self.remove_link(link)
 
@@ -182,21 +173,18 @@ class LinkManager(HubListener):
                 self.add_link(l, update_external=False)
             if update_external:
                 self.update_externally_derivable_components()
-        else:
-            if link not in self._external_links and isinstance(link, LinkCollection) or link.inverse not in self._external_links:
-                if isinstance(link, JoinLink):
-                    link.data1.join_on_key(link.data2, link.cids1[0], link.cids2[0])
-                self._external_links.append(link)
-                if update_external:
-                    self.update_externally_derivable_components()
+        elif link not in self._external_links and isinstance(link, LinkCollection) or link.inverse not in self._external_links:
+            if isinstance(link, JoinLink):
+                link.data1.join_on_key(link.data2, link.cids1[0], link.cids2[0])
+            self._external_links.append(link)
+            if update_external:
+                self.update_externally_derivable_components()
 
     @contract(link=ComponentLink)
     def remove_link(self, link, update_external=True):
         if isinstance(link, list):
             for l in link:
                 self.remove_link(l, update_external=False)
-            if update_external:
-                self.update_externally_derivable_components()
         else:
             logging.getLogger(__name__).debug('removing link %s', link)
             if isinstance(link, JoinLink):
@@ -204,15 +192,18 @@ class LinkManager(HubListener):
                 data_to_remove_from_data2 = None
                 for other_data, key_join in link.data1._key_joins.items():
                     cid, cid_other = key_join
-                    if (other_data == link.data2):
-                        if (cid[0] == link.cids1[0]) and (cid_other[0] == link.cids2[0]):  # assumes single-linkage
-                            data_to_remove_from_data1 = other_data
-                            data_to_remove_from_data2 = link.data1
+                    if (
+                        (other_data == link.data2)
+                        and (cid[0] == link.cids1[0])
+                        and (cid_other[0] == link.cids2[0])
+                    ):
+                        data_to_remove_from_data1 = other_data
+                        data_to_remove_from_data2 = link.data1
                 link.data1._key_joins.pop(data_to_remove_from_data1)  # Assume these joins are set up right
                 link.data2._key_joins.pop(data_to_remove_from_data2)
             self._external_links.remove(link)
-            if update_external:
-                self.update_externally_derivable_components()
+        if update_external:
+            self.update_externally_derivable_components()
 
     @contract(data=Data)
     def update_externally_derivable_components(self, data=None):
@@ -270,7 +261,11 @@ class LinkManager(HubListener):
         if self.data_collection is None:
             data_links = set()
         else:
-            data_links = set(link for data in self.data_collection for link in getattr(data, 'links', []))
+            data_links = {
+                link
+                for data in self.data_collection
+                for link in getattr(data, 'links', [])
+            }
 
         external_links = set()
 
@@ -285,7 +280,7 @@ class LinkManager(HubListener):
 
     @property
     def _inverse_links(self):
-        return set(link.inverse for link in self._links if link.inverse is not None)
+        return {link.inverse for link in self._links if link.inverse is not None}
 
     @property
     def links(self):
@@ -362,27 +357,25 @@ def is_convertible_to_single_pixel_cid(data, cid):
         data = data.data
     if cid in data.pixel_component_ids:
         return cid
-    else:
-        try:
-            target_comp = data.get_component(cid)
-        except IncompatibleAttribute:
+    try:
+        target_comp = data.get_component(cid)
+    except IncompatibleAttribute:
+        return None
+    if cid in data.world_component_ids:
+        return (
+            data.pixel_component_ids[target_comp.axis]
+            if len(dependent_axes(data.coords, target_comp.axis)) == 1
+            else None
+        )
+    if isinstance(target_comp, DerivedComponent):
+        from_ids = [is_convertible_to_single_pixel_cid(data, c)
+                    for c in target_comp.link.get_from_ids()]
+        if None in from_ids:
             return None
-        if cid in data.world_component_ids:
-            if len(dependent_axes(data.coords, target_comp.axis)) == 1:
-                return data.pixel_component_ids[target_comp.axis]
-            else:
-                return None
-        else:
-            if isinstance(target_comp, DerivedComponent):
-                from_ids = [is_convertible_to_single_pixel_cid(data, c)
-                            for c in target_comp.link.get_from_ids()]
-                if None in from_ids:
-                    return None
-                else:
-                    # Use set to get rid of duplicates
-                    from_ids = list(set(from_ids))
-                    if len(from_ids) == 1:
-                        return is_convertible_to_single_pixel_cid(data, from_ids[0])
+        # Use set to get rid of duplicates
+        from_ids = list(set(from_ids))
+        if len(from_ids) == 1:
+            return is_convertible_to_single_pixel_cid(data, from_ids[0])
 
 
 def equivalent_pixel_cids(reference, target):

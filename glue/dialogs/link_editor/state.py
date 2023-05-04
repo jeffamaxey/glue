@@ -84,14 +84,15 @@ class LinkEditorState(State):
         if self.data1 is None or self.data2 is None:
             return []
 
-        links = []
-        for link in self.links:
-            if link.suggested or not self.restrict_to_suggested:
-                if ((link.data1 is self.data1 and link.data2 is self.data2) or
-                        (link.data1 is self.data2 and link.data2 is self.data1)):
-                    links.append(link)
-
-        return links
+        return [
+            link
+            for link in self.links
+            if (link.suggested or not self.restrict_to_suggested)
+            and (
+                (link.data1 is self.data1 and link.data2 is self.data2)
+                or (link.data1 is self.data2 and link.data2 is self.data1)
+            )
+        ]
 
     def flip_data(self, *args):
         # FIXME: since the links will be the same in the list of current links,
@@ -125,10 +126,7 @@ class LinkEditorState(State):
                 self.current_link = links[0]
 
     def _display_link(self, link):
-        if link.suggested:
-            return str(link) + ' [Suggested]'
-        else:
-            return str(link)
+        return f'{str(link)} [Suggested]' if link.suggested else str(link)
 
     def simple_link(self, *args):
         self.new_link(self._identity)
@@ -220,11 +218,7 @@ class EditableLinkFunctionState(State):
 
         super(EditableLinkFunctionState, self).__init__()
 
-        if isinstance(function, JoinLink):
-            self.link_type = "join"
-        else:
-            self.link_type = "value"
-
+        self.link_type = "join" if isinstance(function, JoinLink) else "value"
         if isinstance(function, ComponentLink):
             self._function = function.get_using()
             self._inverse = function.get_inverse()
@@ -283,13 +277,13 @@ class EditableLinkFunctionState(State):
             if len(self.names2) == 0:  # legacy mode for old link helpers
                 helper.append_data(data2)
 
-            setattr(self, '_' + name + '_helper', helper)
+            setattr(self, f'_{name}_helper', helper)
 
         for name in self.names2:
             helper = ComponentIDComboHelper(self, name,
                                             pixel_coord=True, world_coord=True)
             helper.append_data(data2)
-            setattr(self, '_' + name + '_helper', helper)
+            setattr(self, f'_{name}_helper', helper)
 
         if cids1 is not None:
             for name, cid in zip(self.names1, cids1):
@@ -301,31 +295,26 @@ class EditableLinkFunctionState(State):
 
     def __str__(self):
 
-        if len(self.names1) > 0 or len(self.names2) > 0:
-
-            # Construct display of linked cids
-            cids1 = [str(getattr(self, cid)) for cid in self.names1]
-            cids2 = [str(getattr(self, cid)) for cid in self.names2]
-            cids = ','.join(cids1) + ' <-> ' + ','.join(cids2)
-
-            return '{0}({1})'.format(self.display, cids)
-
-        else:
-
+        if len(self.names1) <= 0 and len(self.names2) <= 0:
             return self.display
+        # Construct display of linked cids
+        cids1 = [str(getattr(self, cid)) for cid in self.names1]
+        cids2 = [str(getattr(self, cid)) for cid in self.names2]
+        cids = ','.join(cids1) + ' <-> ' + ','.join(cids2)
+
+        return '{0}({1})'.format(self.display, cids)
 
     @property
     def link(self):
         """
         Return a `glue.core.component_link.ComponentLink` object.
         """
+        cids1 = [getattr(self, name) for name in self.names1]
         if self._function is not None:
-            cids1 = [getattr(self, name) for name in self.names1]
             cid_out = getattr(self, self.names2[0])
             return ComponentLink(cids1, cid_out,
                                  using=self._function, inverse=self._inverse)
         else:
-            cids1 = [getattr(self, name) for name in self.names1]
             cids2 = [getattr(self, name) for name in self.names2]
             return self._helper_class(cids1=cids1, cids2=cids2,
                                       data1=self.data1, data2=self.data2)

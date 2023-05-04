@@ -37,6 +37,6 @@ class LayerState(State):
 
     def __repr__(self):
         if self.layer is None:
-            return "%s with layer unset" % (self.__class__.__name__)
+            return f"{self.__class__.__name__} with layer unset"
         else:
-            return "%s for %s" % (self.__class__.__name__, self.layer.label)
+            return f"{self.__class__.__name__} for {self.layer.label}"

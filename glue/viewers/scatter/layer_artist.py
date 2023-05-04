@@ -23,17 +23,47 @@ STRETCHES = {'linear': LinearStretch,
              'arcsinh': AsinhStretch,
              'log': LogStretch}
 
-CMAP_PROPERTIES = set(['cmap_mode', 'cmap_att', 'cmap_vmin', 'cmap_vmax', 'cmap'])
-MARKER_PROPERTIES = set(['size_mode', 'size_att', 'size_vmin', 'size_vmax', 'size_scaling', 'size', 'fill'])
-LINE_PROPERTIES = set(['linewidth', 'linestyle'])
-DENSITY_PROPERTIES = set(['dpi', 'stretch', 'density_contrast'])
-VISUAL_PROPERTIES = (CMAP_PROPERTIES | MARKER_PROPERTIES | DENSITY_PROPERTIES |
-                     LINE_PROPERTIES | set(['color', 'alpha', 'zorder', 'visible']))
+CMAP_PROPERTIES = {'cmap_mode', 'cmap_att', 'cmap_vmin', 'cmap_vmax', 'cmap'}
+MARKER_PROPERTIES = {
+    'size_mode',
+    'size_att',
+    'size_vmin',
+    'size_vmax',
+    'size_scaling',
+    'size',
+    'fill',
+}
+LINE_PROPERTIES = {'linewidth', 'linestyle'}
+DENSITY_PROPERTIES = {'dpi', 'stretch', 'density_contrast'}
+VISUAL_PROPERTIES = (
+    CMAP_PROPERTIES
+    | MARKER_PROPERTIES
+    | DENSITY_PROPERTIES
+    | LINE_PROPERTIES
+    | {'color', 'alpha', 'zorder', 'visible'}
+)
 
-DATA_PROPERTIES = set(['layer', 'x_att', 'y_att', 'cmap_mode', 'size_mode', 'density_map',
-                       'xerr_att', 'yerr_att', 'xerr_visible', 'yerr_visible',
-                       'vector_visible', 'vx_att', 'vy_att', 'vector_arrowhead', 'vector_mode',
-                       'vector_origin', 'line_visible', 'markers_visible', 'vector_scaling'])
+DATA_PROPERTIES = {
+    'layer',
+    'x_att',
+    'y_att',
+    'cmap_mode',
+    'size_mode',
+    'density_map',
+    'xerr_att',
+    'yerr_att',
+    'xerr_visible',
+    'yerr_visible',
+    'vector_visible',
+    'vx_att',
+    'vy_att',
+    'vector_arrowhead',
+    'vector_mode',
+    'vector_origin',
+    'line_visible',
+    'markers_visible',
+    'vector_scaling',
+}
 
 
 def ravel_artists(errorbar_artist):
@@ -220,36 +250,34 @@ class ScatterLayerArtist(MatplotlibLayerArtist):
         else:
             self.enable()
 
-        if self.state.markers_visible:
-
-            if self.state.density_map:
-                # We don't use x, y here because we actually make use of the
-                # ability of the density artist to call a custom histogram
-                # method which is defined on this class and does the data
-                # access.
-                self.plot_artist.set_data([], [])
-                self.scatter_artist.set_offsets(np.zeros((0, 2)))
-            else:
-
-                full_sphere = getattr(self._viewer_state, 'using_full_sphere', False)
-                degrees = getattr(self._viewer_state, 'using_degrees', False)
-                if degrees:
-                    x = np.radians(x)
-                    if full_sphere:
-                        y = np.radians(y)
-
-                self.density_artist.set_label(None)
-                if self._use_plot_artist():
-                    # In this case we use Matplotlib's plot function because it has much
-                    # better performance than scatter.
-                    self.plot_artist.set_data(x, y)
-                else:
-                    offsets = np.vstack((x, y)).transpose()
-                    self.scatter_artist.set_offsets(offsets)
-        else:
+        if (
+            self.state.markers_visible
+            and self.state.density_map
+            or not self.state.markers_visible
+        ):
+            # We don't use x, y here because we actually make use of the
+            # ability of the density artist to call a custom histogram
+            # method which is defined on this class and does the data
+            # access.
             self.plot_artist.set_data([], [])
             self.scatter_artist.set_offsets(np.zeros((0, 2)))
+        else:
 
+            degrees = getattr(self._viewer_state, 'using_degrees', False)
+            if degrees:
+                x = np.radians(x)
+                full_sphere = getattr(self._viewer_state, 'using_full_sphere', False)
+                if full_sphere:
+                    y = np.radians(y)
+
+            self.density_artist.set_label(None)
+            if self._use_plot_artist():
+                # In this case we use Matplotlib's plot function because it has much
+                # better performance than scatter.
+                self.plot_artist.set_data(x, y)
+            else:
+                offsets = np.vstack((x, y)).transpose()
+                self.scatter_artist.set_offsets(offsets)
         if self.state.line_visible:
             if self.state.cmap_mode == 'Fixed':
                 self.line_collection.set_points(x, y, oversample=False)
@@ -344,10 +372,8 @@ class ScatterLayerArtist(MatplotlibLayerArtist):
         if not self.enabled:
             return
 
-        if self.state.markers_visible:
-
-            if self.state.density_map:
-
+        if self.state.density_map:
+            if self.state.markers_visible:
                 if self.state.cmap_mode == 'Fixed':
                     if force or 'color' in changed or 'cmap_mode' in changed:
                         self.density_artist.set_color(self.state.color)
@@ -367,67 +393,66 @@ class ScatterLayerArtist(MatplotlibLayerArtist):
                     self.density_auto_limits.contrast = self.state.density_contrast
                     self.density_artist.stale = True
 
-            else:
+        elif self._use_plot_artist():
+            if self.state.markers_visible:
 
-                if self._use_plot_artist():
+                if force or 'color' in changed or 'fill' in changed:
+                    if self.state.fill:
+                        self.plot_artist.set_markeredgecolor('none')
+                        self.plot_artist.set_markerfacecolor(self.state.color)
+                    else:
+                        self.plot_artist.set_markeredgecolor(self.state.color)
+                        self.plot_artist.set_markerfacecolor('none')
 
-                    if force or 'color' in changed or 'fill' in changed:
-                        if self.state.fill:
-                            self.plot_artist.set_markeredgecolor('none')
-                            self.plot_artist.set_markerfacecolor(self.state.color)
-                        else:
-                            self.plot_artist.set_markeredgecolor(self.state.color)
-                            self.plot_artist.set_markerfacecolor('none')
+                if force or 'size' in changed or 'size_scaling' in changed:
+                    self.plot_artist.set_markersize(self.state.size *
+                                                    self.state.size_scaling)
 
-                    if force or 'size' in changed or 'size_scaling' in changed:
-                        self.plot_artist.set_markersize(self.state.size *
-                                                        self.state.size_scaling)
+        elif self.state.markers_visible:
 
+            # TEMPORARY: Matplotlib has a bug that causes set_alpha to
+            # change the colors back: https://github.com/matplotlib/matplotlib/issues/8953
+            if 'alpha' in changed:
+                force = True
+
+            if self.state.cmap_mode == 'Fixed':
+                if force or 'color' in changed or 'cmap_mode' in changed or 'fill' in changed:
+                    self.scatter_artist.set_array(None)
+                    if self.state.fill:
+                        self.scatter_artist.set_facecolors(self.state.color)
+                        self.scatter_artist.set_edgecolors('none')
+                    else:
+                        self.scatter_artist.set_facecolors('none')
+                        self.scatter_artist.set_edgecolors(self.state.color)
+            elif force or any(prop in changed for prop in CMAP_PROPERTIES) or 'fill' in changed:
+                self.scatter_artist.set_edgecolors(None)
+                self.scatter_artist.set_facecolors(None)
+                c = ensure_numerical(self.layer[self.state.cmap_att].ravel())
+                set_mpl_artist_cmap(self.scatter_artist, c, self.state)
+                if self.state.fill:
+                    self.scatter_artist.set_edgecolors('none')
                 else:
+                    self.scatter_artist.set_facecolors('none')
 
-                    # TEMPORARY: Matplotlib has a bug that causes set_alpha to
-                    # change the colors back: https://github.com/matplotlib/matplotlib/issues/8953
-                    if 'alpha' in changed:
-                        force = True
+            if force or any(prop in changed for prop in MARKER_PROPERTIES):
 
-                    if self.state.cmap_mode == 'Fixed':
-                        if force or 'color' in changed or 'cmap_mode' in changed or 'fill' in changed:
-                            self.scatter_artist.set_array(None)
-                            if self.state.fill:
-                                self.scatter_artist.set_facecolors(self.state.color)
-                                self.scatter_artist.set_edgecolors('none')
-                            else:
-                                self.scatter_artist.set_facecolors('none')
-                                self.scatter_artist.set_edgecolors(self.state.color)
-                    elif force or any(prop in changed for prop in CMAP_PROPERTIES) or 'fill' in changed:
-                        self.scatter_artist.set_edgecolors(None)
-                        self.scatter_artist.set_facecolors(None)
-                        c = ensure_numerical(self.layer[self.state.cmap_att].ravel())
-                        set_mpl_artist_cmap(self.scatter_artist, c, self.state)
-                        if self.state.fill:
-                            self.scatter_artist.set_edgecolors('none')
-                        else:
-                            self.scatter_artist.set_facecolors('none')
+                if self.state.size_mode == 'Fixed':
+                    s = self.state.size * self.state.size_scaling
+                    s = broadcast_to(s, self.scatter_artist.get_sizes().shape)
+                else:
+                    s = ensure_numerical(self.layer[self.state.size_att].ravel())
+                    s = ((s - self.state.size_vmin) /
+                         (self.state.size_vmax - self.state.size_vmin))
+                    # The following ensures that the sizes are in the
+                    # range 3 to 30 before the final size_scaling.
+                    np.clip(s, 0, 1, out=s)
+                    s *= 0.95
+                    s += 0.05
+                    s *= (30 * self.state.size_scaling)
 
-                    if force or any(prop in changed for prop in MARKER_PROPERTIES):
-
-                        if self.state.size_mode == 'Fixed':
-                            s = self.state.size * self.state.size_scaling
-                            s = broadcast_to(s, self.scatter_artist.get_sizes().shape)
-                        else:
-                            s = ensure_numerical(self.layer[self.state.size_att].ravel())
-                            s = ((s - self.state.size_vmin) /
-                                 (self.state.size_vmax - self.state.size_vmin))
-                            # The following ensures that the sizes are in the
-                            # range 3 to 30 before the final size_scaling.
-                            np.clip(s, 0, 1, out=s)
-                            s *= 0.95
-                            s += 0.05
-                            s *= (30 * self.state.size_scaling)
-
-                        # Note, we need to square here because for scatter, s is actually
-                        # proportional to the marker area, not radius.
-                        self.scatter_artist.set_sizes(s ** 2)
+                # Note, we need to square here because for scatter, s is actually
+                # proportional to the marker area, not radius.
+                self.scatter_artist.set_sizes(s ** 2)
 
         if self.state.line_visible:
 
@@ -447,13 +472,16 @@ class ScatterLayerArtist(MatplotlibLayerArtist):
             if force or 'linestyle' in changed:
                 self.line_collection.set_linestyle(self.state.linestyle)
 
-        if self.state.vector_visible and self.vector_artist is not None:
-
-            if self.state.cmap_mode == 'Fixed':
-                if force or 'color' in changed or 'cmap_mode' in changed:
-                    self.vector_artist.set_array(None)
-                    self.vector_artist.set_color(self.state.color)
-            elif force or any(prop in changed for prop in CMAP_PROPERTIES):
+        if self.state.cmap_mode == 'Fixed':
+            if (
+                self.state.vector_visible
+                and self.vector_artist is not None
+                and (force or 'color' in changed or 'cmap_mode' in changed)
+            ):
+                self.vector_artist.set_array(None)
+                self.vector_artist.set_color(self.state.color)
+        elif force or any(prop in changed for prop in CMAP_PROPERTIES):
+            if self.state.vector_visible and self.vector_artist is not None:
                 c = ensure_numerical(self.layer[self.state.cmap_att].ravel())
                 set_mpl_artist_cmap(self.vector_artist, c, self.state)
 
@@ -528,10 +556,7 @@ class ScatterLayerArtist(MatplotlibLayerArtist):
             self._update_visual_attributes(changed, force=force)
 
     def get_layer_color(self):
-        if self.state.cmap_mode == 'Fixed':
-            return self.state.color
-        else:
-            return self.state.cmap
+        return self.state.color if self.state.cmap_mode == 'Fixed' else self.state.cmap
 
     @defer_draw
     def update(self):
@@ -545,43 +570,42 @@ class ScatterLayerArtist(MatplotlibLayerArtist):
         self.density_artist = None
 
     def get_handle_legend(self):
-        if self.enabled and self.state.visible:
-            handles = []
-            if self.state.markers_visible:
-                if self.state.density_map:
-                    if self.state.cmap_mode == 'Fixed':
-                        color = self.get_layer_color()
-                    else:
-                        color = self.layer.style.color
-                    handle = Line2D([0, ], [0, ], marker=".", linestyle="none",
-                                    ms=self.state.size, alpha=self.state.alpha,
-                                    color=color)
-                    handles.append(handle)  # as placeholder
-                else:
-                    if self._use_plot_artist():
-                        handles.append(self.plot_artist)
-                    else:
-                        handles.append(self.scatter_artist)
-
-            if self.state.line_visible:
-                handles.append(self.line_collection)
-
-            if self.state.vector_visible:
-                handles.append(self.vector_artist)
-
-            if self.state.xerr_visible or self.state.yerr_visible:
-                handles.append(self.errorbar_artist)
-
-            handles = tuple(handles)
-            if len(handles) > 0:
-                return handles, self.layer.label, None
+        if not self.enabled or not self.state.visible:
+            return None, None, None
+        handles = []
+        if self.state.markers_visible:
+            if self.state.density_map:
+                color = (
+                    self.get_layer_color()
+                    if self.state.cmap_mode == 'Fixed'
+                    else self.layer.style.color
+                )
+                handle = Line2D([0, ], [0, ], marker=".", linestyle="none",
+                                ms=self.state.size, alpha=self.state.alpha,
+                                color=color)
+                handles.append(handle)  # as placeholder
+            elif self._use_plot_artist():
+                handles.append(self.plot_artist)
             else:
-                return None, None, None
+                handles.append(self.scatter_artist)
 
+        if self.state.line_visible:
+            handles.append(self.line_collection)
+
+        if self.state.vector_visible:
+            handles.append(self.vector_artist)
+
+        if self.state.xerr_visible or self.state.yerr_visible:
+            handles.append(self.errorbar_artist)
+
+        if handles := tuple(handles):
+            return handles, self.layer.label, None
         else:
             return None, None, None
 
     def _use_plot_artist(self):
         res = self.state.cmap_mode == 'Fixed' and self.state.size_mode == 'Fixed'
-        return res and (not hasattr(self._viewer_state, 'plot_mode') or
-                        not self._viewer_state.plot_mode == 'polar')
+        return res and (
+            not hasattr(self._viewer_state, 'plot_mode')
+            or self._viewer_state.plot_mode != 'polar'
+        )

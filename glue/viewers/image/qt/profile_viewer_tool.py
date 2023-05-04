@@ -27,9 +27,6 @@ class ProfileViewerTool(Tool):
                            'Do you really want to create a new one?',
                            default='Cancel', setting='show_warn_profile_duplicate')
 
-            if not proceed:
-                return
-
         else:
 
             proceed = info('Creating a profile viewer',
@@ -39,8 +36,8 @@ class ProfileViewerTool(Tool):
                            'click OK you can draw and update a subset in the current '
                            'image viewer and the profile will update accordingly.', setting='show_info_profile_open')
 
-            if not proceed:
-                return
+        if not proceed:
+            return
 
         from glue.viewers.profile.qt import ProfileViewer
         profile_viewer = self.viewer.session.application.new_data_viewer(ProfileViewer)
@@ -70,11 +67,17 @@ class ProfileViewerTool(Tool):
 
             if isinstance(profile_viewer.state.x_att, PixelComponentID):
                 for att in reference_data.pixel_component_ids:
-                    if att is not self.viewer.state.x_att and att is not self.viewer.state.y_att:
-                        if att is not profile_viewer.state.x_att:
-                            profile_viewer.state.x_att = att
+                    if (
+                        att is not self.viewer.state.x_att
+                        and att is not self.viewer.state.y_att
+                        and att is not profile_viewer.state.x_att
+                    ):
+                        profile_viewer.state.x_att = att
             else:
                 for att in reference_data.world_component_ids:
-                    if att is not self.viewer.state.x_att_world and att is not self.viewer.state.y_att_world:
-                        if att is not profile_viewer.state.x_att:
-                            profile_viewer.state.x_att = att
+                    if (
+                        att is not self.viewer.state.x_att_world
+                        and att is not self.viewer.state.y_att_world
+                        and att is not profile_viewer.state.x_att
+                    ):
+                        profile_viewer.state.x_att = att

@@ -30,9 +30,7 @@ class DeferredMethod(object):
             self.calls.append((instance, a, k))
 
     def __get__(self, instance, owner):
-        if instance is None:
-            return self
-        return partial(self.__call__, instance)
+        return self if instance is None else partial(self.__call__, instance)
 
     def execute_deferred_calls(self):
         for instance, args, kwargs in self.calls:
@@ -107,19 +105,17 @@ def as_variable_name(x):
 
 
 def as_list(x):
-    if isinstance(x, list):
-        return x
-    return [x]
+    return x if isinstance(x, list) else [x]
 
 
 def file_format(filename):
     if filename.find('.') == -1:
         return ''
-    if filename.lower().endswith('.gz'):
-        result = filename.lower().rsplit('.', 2)[1]
-    else:
-        result = filename.lower().rsplit('.', 1)[1]
-    return result
+    return (
+        filename.lower().rsplit('.', 2)[1]
+        if filename.lower().endswith('.gz')
+        else filename.lower().rsplit('.', 1)[1]
+    )
 
 
 class CallbackMixin(object):
@@ -157,7 +153,7 @@ class PropertySetMixin(object):
     @property
     def properties(self):
         """ A dict mapping property names to values """
-        return dict((p, getattr(self, p)) for p in self._property_set)
+        return {p: getattr(self, p) for p in self._property_set}
 
     @properties.setter
     def properties(self, value):
@@ -165,9 +161,8 @@ class PropertySetMixin(object):
 
         Keys in the new dict must be valid property names defined in
         the _property_set class level attribute"""
-        invalid = set(value.keys()) - set(self._property_set)
-        if invalid:
-            raise ValueError("Invalid property values: %s" % invalid)
+        if invalid := set(value.keys()) - set(self._property_set):
+            raise ValueError(f"Invalid property values: {invalid}")
 
         for k in self._property_set:
             if k not in value:
@@ -234,7 +229,7 @@ def format_choices(options, index=False):
         if isinstance(option, str):
             updated_options.append("'{0}'".format(option))
         elif isinstance(option, type):
-            updated_options.append(str(option.__module__) + '.' + option.__name__)
+            updated_options.append(f'{str(option.__module__)}.{option.__name__}')
         else:
             updated_options.append(option)
     if index:

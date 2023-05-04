@@ -97,12 +97,8 @@ class CurrentComboDataProperty(WidgetProperty):
         """
         if widget.currentIndex() == -1:
             return None
-        else:
-            data = widget.itemData(widget.currentIndex())
-            if isinstance(data, UserDataWrapper):
-                return data.data
-            else:
-                return data
+        data = widget.itemData(widget.currentIndex())
+        return data.data if isinstance(data, UserDataWrapper) else data
 
     def setter(self, widget, value):
         """
@@ -144,9 +140,8 @@ class CurrentComboTextProperty(WidgetProperty):
         its itemData
         """
         idx = widget.findText(value)
-        if idx == -1:
-            if value is not None:
-                raise ValueError("Cannot find text '{0}' in combo box".format(value))
+        if idx == -1 and value is not None:
+            raise ValueError("Cannot find text '{0}' in combo box".format(value))
         widget.setCurrentIndex(idx)
 
 

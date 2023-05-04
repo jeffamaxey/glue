@@ -28,7 +28,7 @@ def icon_path(icon_name, icon_format='png'):
         if pkg_resources.resource_exists('glue.icons', icon_name):
             return pkg_resources.resource_filename('glue.icons', icon_name)
         else:
-            raise RuntimeError("Icon does not exist: %s" % icon_name)
+            raise RuntimeError(f"Icon does not exist: {icon_name}")
     except NotImplementedError:  # workaround for mac app
         result = os.path.dirname(__file__)
         return os.path.join(result.replace('site-packages.zip', 'glue'),

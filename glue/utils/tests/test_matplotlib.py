@@ -53,17 +53,17 @@ def test_artist_functions():
 
     ax.add_patch(c1)
     ax.add_patch(c2)
-    assert all_artists(fig) == set([c1, c2])
+    assert all_artists(fig) == {c1, c2}
 
     ax.add_patch(c3)
-    assert new_artists(fig, set([c1, c2])) == set([c3])
+    assert new_artists(fig, {c1, c2}) == {c3}
 
     remove_artists([c2])
-    assert all_artists(fig) == set([c1, c3])
+    assert all_artists(fig) == {c1, c3}
 
     # check that it can deal with being passed the same artist twice
     remove_artists([c1, c1])
-    assert all_artists(fig) == set([c3])
+    assert all_artists(fig) == {c3}
 
 
 def test_get_extent():

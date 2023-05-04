@@ -28,10 +28,10 @@ class OffsetLink(MultiLink):
         super().__init__(cids1, cids2, forwards=self.forwards, backwards=self.backwards)
 
     def forwards(self, *pixel_in):
-        return tuple([pi - o for (pi, o) in zip(pixel_in, self.offsets)])
+        return tuple(pi - o for (pi, o) in zip(pixel_in, self.offsets))
 
     def backwards(self, *pixel_out):
-        return tuple([po + o for (po, o) in zip(pixel_out, self.offsets)])
+        return tuple(po + o for (po, o) in zip(pixel_out, self.offsets))
 
 
 class AffineLink(MultiLink):
@@ -112,21 +112,25 @@ class WCSLink(MultiLink):
         wcs1, wcs2 = data1.coords, data2.coords
 
         forwards = backwards = None
-        if wcs1.pixel_n_dim == wcs2.pixel_n_dim and wcs1.world_n_dim == wcs2.world_n_dim:
-            if (wcs1.world_axis_physical_types.count(None) == 0 and
-                    wcs2.world_axis_physical_types.count(None) == 0):
+        if (
+            wcs1.pixel_n_dim == wcs2.pixel_n_dim
+            and wcs1.world_n_dim == wcs2.world_n_dim
+            and (
+                wcs1.world_axis_physical_types.count(None) == 0
+                and wcs2.world_axis_physical_types.count(None) == 0
+            )
+        ):
+            # The easiest way to check if the WCSes are compatible is to simply try and
+            # see if values can be transformed for a single pixel. In future we might
+            # find that this requires optimization performance-wise, but for now let's
+            # not do premature optimization.
 
-                # The easiest way to check if the WCSes are compatible is to simply try and
-                # see if values can be transformed for a single pixel. In future we might
-                # find that this requires optimization performance-wise, but for now let's
-                # not do premature optimization.
+            pixel_cids1, pixel_cids2, forwards, backwards = get_cids_and_functions(wcs1, wcs2,
+                                                                                   data1.pixel_component_ids[::-1],
+                                                                                   data2.pixel_component_ids[::-1])
 
-                pixel_cids1, pixel_cids2, forwards, backwards = get_cids_and_functions(wcs1, wcs2,
-                                                                                       data1.pixel_component_ids[::-1],
-                                                                                       data2.pixel_component_ids[::-1])
-
-                self._physical_types_1 = wcs1.world_axis_physical_types
-                self._physical_types_2 = wcs2.world_axis_physical_types
+            self._physical_types_1 = wcs1.world_axis_physical_types
+            self._physical_types_2 = wcs2.world_axis_physical_types
 
         if not forwards or not backwards:
             # A generalized APE 14-compatible way
@@ -217,21 +221,18 @@ class WCSLink(MultiLink):
         self.data2 = data2
 
     def __gluestate__(self, context):
-        state = {}
-        state['data1'] = context.id(self.data1)
+        state = {'data1': context.id(self.data1)}
         state['data2'] = context.id(self.data2)
         return state
 
     @classmethod
     def __setgluestate__(cls, rec, context):
-        self = cls(context.object(rec['data1']),
-                   context.object(rec['data2']))
-        return self
+        return cls(context.object(rec['data1']), context.object(rec['data2']))
 
     @property
     def description(self):
-        types1 = ''.join(['<li>' + phys_type for phys_type in self._physical_types_1])
-        types2 = ''.join(['<li>' + phys_type for phys_type in self._physical_types_2])
+        types1 = ''.join([f'<li>{phys_type}' for phys_type in self._physical_types_1])
+        types2 = ''.join([f'<li>{phys_type}' for phys_type in self._physical_types_2])
         return ('This automatically links the coordinates of the '
                 'two datasets using the World Coordinate System (WCS) '
                 'coordinates defined in the files.<br><br>The physical types '
@@ -306,12 +307,11 @@ def wcs_autolink(data_collection):
     if len(wcs_datasets) < 2:
         return []
 
-    # Find existing WCS links
-    existing = set()
-    for link in data_collection.external_links:
-        if isinstance(link, WCSLink):
-            existing.add((link.data1, link.data2))
-
+    existing = {
+        (link.data1, link.data2)
+        for link in data_collection.external_links
+        if isinstance(link, WCSLink)
+    }
     # Loop through all pairs of datasets, skipping pairs for which a link
     # already exists. PERF: in practice we don't actually have to link all
     # pairs, so we should try and optimize that.

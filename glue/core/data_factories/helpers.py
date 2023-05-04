@@ -51,8 +51,7 @@ def _extension(path):
     stems = path.split('.')[1:]
 
     # special case: test.fits.gz -> fits.gz
-    if len(stems) > 1 and any(x == stems[-1]
-                              for x in ['gz', 'gzip', 'bz', 'bz2']):
+    if len(stems) > 1 and stems[-1] in ['gz', 'gzip', 'bz', 'bz2']:
         return '.'.join(stems[-2:])
     return stems[-1]
 
@@ -99,11 +98,7 @@ class LoadLog(object):
         self.components = []
         self.data = []
 
-        if auto_refresh():
-            self.watcher = FileWatcher(path, self.reload)
-        else:
-            self.watcher = None
-
+        self.watcher = FileWatcher(path, self.reload) if auto_refresh() else None
         self._absolute = True
 
     def _log_component(self, component):
@@ -144,10 +139,11 @@ class LoadLog(object):
                 warnings.warn("Cannot refresh data -- data shape changed")
                 return
 
-            mapping = dict((c, log.component(self.id(c)).data)
-                           for c in dold._components.values()
-                           if c in self.components and
-                           type(c) == Component)
+            mapping = {
+                c: log.component(self.id(c)).data
+                for c in dold._components.values()
+                if c in self.components and type(c) == Component
+            }
             dold.coords = dnew.coords
             dold.update_components(mapping)
 
@@ -163,11 +159,7 @@ class LoadLog(object):
         # coordinate components even if the transform is an identity transform.
         n_coords = len([comp for comp in self.components
                         if isinstance(comp, CoordinateComponent)])
-        if n_coords == self.components[0].ndim * 2:
-            force_coords = True
-        else:
-            force_coords = False
-
+        force_coords = n_coords == self.components[0].ndim * 2
         return dict(path=path,
                     factory=context.do(self.factory),
                     kwargs=[list(self.kwargs.items())],
@@ -225,7 +217,7 @@ class FileWatcher(object):
         try:
             stat = os.stat(self.path).st_mtime
         except OSError:
-            warnings.warn("Cannot access %s" % self.path)
+            warnings.warn(f"Cannot access {self.path}")
             return
 
         if stat != self.stat_cache:
@@ -266,13 +258,12 @@ def load_data(path, factory=None, **kwargs):
             if isinstance(d, BaseData):
                 yield d
                 continue
-            for item in parse_data(d, lbl):
-                yield item
+            yield from parse_data(d, lbl)
 
     if factory is None:
         factory = find_factory(path, **kwargs)
         if factory is None:
-            raise KeyError("Don't know how to open file: %s" % path)
+            raise KeyError(f"Don't know how to open file: {path}")
     lbl = data_label(path)
 
     d = as_list(factory(path, **kwargs))
@@ -310,11 +301,7 @@ def load_data(path, factory=None, **kwargs):
             for icid, cid in enumerate(item.main_components[1:]):
                 log.log(item.get_component(cid))
 
-    if len(d) == 1:
-        # unpack single-length lists for user convenience
-        return d[0]
-
-    return d
+    return d[0] if len(d) == 1 else d
 
 
 def data_label(path):
@@ -372,26 +359,21 @@ def find_factory(filename, **kwargs):
 
         try:
             is_format = df.identifier(filename, **kwargs)
-        except ImportError:  # dependencies missing
+        except Exception:
             continue
-        except Exception:  # any other issue
-            continue
-
         if is_format:
             valid_formats.append(df)
             best_priority = df.priority
 
     logger.info('Valid formats: {0}'.format(valid_formats))
 
-    if len(valid_formats) == 0:
+    if not valid_formats:
         return None
     elif len(valid_formats) > 1:
         labels = ["'{0}'".format(x.label) for x in valid_formats]
         warnings.warn("Multiple data factories matched the input: {0}. Choosing {1}.".format(', '.join(labels), labels[0]))
 
-    func = valid_formats[0].function
-
-    return func
+    return valid_formats[0].function
 
 
 @data_factory(label='Auto', identifier=lambda x: True)
@@ -400,5 +382,5 @@ def auto_data(filename, *args, **kwargs):
     """Attempt to automatically construct a data object"""
     fac = find_factory(filename, **kwargs)
     if fac is None:
-        raise KeyError("Don't know how to open file: %s" % filename)
+        raise KeyError(f"Don't know how to open file: {filename}")
     return fac(filename, *args, **kwargs)

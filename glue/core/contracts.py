@@ -101,9 +101,6 @@ except ImportError:
     # no-op interface if PyContracts isn't installed
 
     def contract(*args, **kwargs):
-        if args:  # called as @contract
-            return args[0]
-        else:   # called as @contract(x='int', ...)
-            return lambda func: func
+        return args[0] if args else (lambda func: func)
 
     ContractsMeta = type

@@ -19,13 +19,13 @@ class PluginConfig(object):
 
     def __init__(self, plugins={}):
         self.plugins = defaultdict(lambda: True)
-        self.plugins.update(plugins)
+        self.plugins |= plugins
 
     def __str__(self):
-        string = ""
-        for plugin in sorted(self.plugins):
-            string += "{0}: {1}\n".format(plugin, self.plugins[plugin])
-        return string
+        return "".join(
+            "{0}: {1}\n".format(plugin, self.plugins[plugin])
+            for plugin in sorted(self.plugins)
+        )
 
     @classmethod
     def load(cls):
@@ -45,13 +45,10 @@ class PluginConfig(object):
         if len(read) == 0 or not config.has_section('plugins'):
             return cls()
 
-        plugins = {}
-        for name, enabled in config.items('plugins'):
-            plugins[name] = bool(int(enabled))
-
-        self = cls(plugins=plugins)
-
-        return self
+        plugins = {
+            name: bool(int(enabled)) for name, enabled in config.items('plugins')
+        }
+        return cls(plugins=plugins)
 
     def save(self):
 

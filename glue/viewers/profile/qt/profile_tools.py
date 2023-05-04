@@ -201,7 +201,7 @@ class ProfileTools(QtWidgets.QWidget):
                 report += ("<b><font color='{0}'>{1}</font>"
                            "</b>".format(color2hex(layer_artist.state.color),
                                          layer_artist.layer.label))
-                report += "<pre>" + fitter.summarize(fit_results[layer_artist], x, y) + "</pre>"
+                report += f"<pre>{fitter.summarize(fit_results[layer_artist], x, y)}</pre>"
                 if self.viewer.state.normalize:
                     normalize[layer_artist] = layer_artist.state.normalize_values
             self._report_fit(report)
@@ -293,10 +293,13 @@ class ProfileTools(QtWidgets.QWidget):
         for tab in self.viewer.session.application.viewers:
             for viewer in tab:
                 if isinstance(viewer, ImageViewer):
-                    for layer_artist in viewer._layer_artist_container[data]:
-                        if layer_artist.enabled and layer_artist.visible:
-                            if len(viewer.state.slices) >= xatt.axis:
-                                viewers.append(viewer)
+                    viewers.extend(
+                        viewer
+                        for layer_artist in viewer._layer_artist_container[data]
+                        if layer_artist.enabled
+                        and layer_artist.visible
+                        and len(viewer.state.slices) >= xatt.axis
+                    )
         return viewers
 
     def _on_collapse(self):

@@ -641,7 +641,7 @@ class BaseTestMatplotlibDataViewer(object):
 
         # a legend appears
         legend = self.viewer.axes.get_legend()
-        assert not (legend is None)
+        assert legend is not None
 
         handles, labels, handler_dict = self.viewer.get_handles_legend()
         assert len(handles) == 1

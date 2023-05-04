@@ -22,9 +22,9 @@ class SubsetMaskImporter(object):
         masks = reader(filename)
 
         # Make sure shape is unique
-        shapes = set(mask.shape for mask in masks.values())
+        shapes = {mask.shape for mask in masks.values()}
 
-        if len(shapes) == 0:
+        if not shapes:
             raise ValueError("No subset masks were returned")
 
         elif len(shapes) > 1:

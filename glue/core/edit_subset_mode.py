@@ -102,8 +102,7 @@ class EditSubsetMode(object):
         if isinstance(d, (Data, DataCollection)):
             self._combine_data(new_state, override_mode=override_mode)
         else:
-            raise TypeError("input must be a Data or DataCollection: %s" %
-                            type(d))
+            raise TypeError(f"input must be a Data or DataCollection: {type(d)}")
 
 
 def NewMode(edit_subset, new_state):

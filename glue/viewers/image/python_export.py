@@ -6,16 +6,12 @@ def python_export_image_layer(layer, *args):
     if not layer.enabled or not layer.visible:
         return [], None
 
-    script = ""
     imports = ["from glue.viewers.image.state import get_sliced_data_maker"]
     imports += ["import matplotlib.patches as mpatches"]
 
     slices, agg_func, transpose = layer._viewer_state.numpy_slice_aggregation_transpose
 
-    # TODO: implement aggregation, ignore for now
-
-    script += "# Define a function that will get a fixed resolution buffer\n"
-
+    script = "" + "# Define a function that will get a fixed resolution buffer\n"
     options = {'data': code('layer_data'),
                'x_axis': layer._viewer_state.x_att.axis,
                'y_axis': layer._viewer_state.y_att.axis,
@@ -30,7 +26,7 @@ def python_export_image_layer(layer, *args):
     script += "composite.allocate('{0}')\n".format(layer.uuid)
 
     if layer._viewer_state.color_mode == 'Colormaps':
-        color = code('plt.cm.' + layer.state.cmap.name)
+        color = code(f'plt.cm.{layer.state.cmap.name}')
     else:
         color = layer.state.color
 
@@ -49,18 +45,19 @@ def python_export_image_layer(layer, *args):
     if layer._viewer_state.color_mode == 'Colormaps':
         imports += ["from glue.utils.matplotlib import ColormapPatchHandler"]
         script += "handle = mpatches.Patch(color='{0}')\n".format(layer.state.color)
-        script += "handler = ColormapPatchHandler(" + code('plt.cm.' + layer.state.cmap.name) + ")\n"
+        script += (
+            f"handler = ColormapPatchHandler({code(f'plt.cm.{layer.state.cmap.name}')}"
+            + ")\n"
+        )
 
         script += "legend_handles.append(handle)\n"
         script += "legend_handler_dict[handle] = handler\n"
-        script += "legend_labels.append(layer_data.label)\n"
     else:
         options = dict(color=layer.state.color,
                        alpha=layer.state.alpha)
         script += "handle = mpatches.Patch({0})\n".format(serialize_options(options))
         script += "legend_handles.append(handle)\n"
-        script += "legend_labels.append(layer_data.label)\n"
-
+    script += "legend_labels.append(layer_data.label)\n"
     script += "\n"
 
     return imports, script.strip()
@@ -71,15 +68,14 @@ def python_export_image_subset_layer(layer, *args):
     if not layer.enabled or not layer.visible:
         return [], None
 
-    script = ""
     imports = ["from glue.viewers.image.state import get_sliced_data_maker"]
 
     slices, agg_func, transpose = layer._viewer_state.numpy_slice_aggregation_transpose
 
-    # TODO: implement aggregation, ignore for now
-
-    script += "# Define a function that will get a fixed resolution buffer of the mask\n"
-
+    script = (
+        ""
+        + "# Define a function that will get a fixed resolution buffer of the mask\n"
+    )
     options = {'data': code('layer_data'),
                'x_axis': layer._viewer_state.x_att.axis,
                'y_axis': layer._viewer_state.y_att.axis,

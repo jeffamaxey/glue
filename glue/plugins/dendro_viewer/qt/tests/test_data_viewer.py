@@ -29,8 +29,6 @@ class TestDendrogramCommon(BaseTestMatplotlibDataViewer):
     # TODO: Find a way to simplify having to overload this just because
     # we need to use a different ROI
     def test_apply_roi_undo(self):
-        pass
-
         self.data_collection.append(self.data)
         self.viewer.add_data(self.data)
 

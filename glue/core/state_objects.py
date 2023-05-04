@@ -75,11 +75,11 @@ class State(HasCallbackProperties):
         """
         Return the current state as a dictionary of attribute/value pairs.
         """
-        properties = {}
-        for name in dir(self):
-            if not name.startswith('_') and self.is_callback_property(name):
-                properties[name] = getattr(self, name)
-        return properties
+        return {
+            name: getattr(self, name)
+            for name in dir(self)
+            if not name.startswith('_') and self.is_callback_property(name)
+        }
 
     def __str__(self):
         s = ""
@@ -96,16 +96,21 @@ class State(HasCallbackProperties):
         return "<{0}\n{1}\n>".format(self.__class__.__name__, indent(str(self), '  '))
 
     def __gluestate__(self, context):
-        return {'values': dict((key, context.id(value)) for key, value in self.as_dict().items())}
+        return {
+            'values': {
+                key: context.id(value) for key, value in self.as_dict().items()
+            }
+        }
 
     def _update_priority(self, name):
         return 0
 
     @classmethod
     def __setgluestate__(cls, rec, context):
-        properties = dict((key, context.object(value)) for key, value in rec['values'].items())
-        result = cls(**properties)
-        return result
+        properties = {
+            key: context.object(value) for key, value in rec['values'].items()
+        }
+        return cls(**properties)
 
 
 class StateAttributeCacheHelper(object):
@@ -133,12 +138,14 @@ class StateAttributeCacheHelper(object):
 
         self._state = state
         self._attribute = attribute
-        self._values = dict((key, kwargs[key]) for key in self.values_names if key in kwargs)
-        self._modifiers = dict((key, kwargs[key]) for key in self.modifiers_names if key in kwargs)
+        self._values = {key: kwargs[key] for key in self.values_names if key in kwargs}
+        self._modifiers = {
+            key: kwargs[key] for key in self.modifiers_names if key in kwargs
+        }
 
-        self._attribute_lookup = {'attribute': self._attribute}
-        self._attribute_lookup.update(self._values)
-        self._attribute_lookup.update(self._modifiers)
+        self._attribute_lookup = (
+            {'attribute': self._attribute} | self._values | self._modifiers
+        )
         self._attribute_lookup_inv = {v: k for k, v in self._attribute_lookup.items()}
 
         self._state.add_callback(self._attribute, self._update_attribute)
@@ -147,10 +154,7 @@ class StateAttributeCacheHelper(object):
 
         # NOTE: don't use self._cache = cache or {} here since if the initial
         #       cache is empty it will evaluate as False!
-        if cache is None:
-            self._cache = {}
-        else:
-            self._cache = cache
+        self._cache = {} if cache is None else cache
 
     @property
     def data_values(self):
@@ -163,20 +167,16 @@ class StateAttributeCacheHelper(object):
     def data(self):
         if self.attribute is None:
             return None
+        # For subsets in 'data' mode, we want to compute the limits based on
+        # the full dataset, not just the subset.
+        if isinstance(self.attribute.parent, Subset):
+            return self.attribute.parent.data
         else:
-            # For subsets in 'data' mode, we want to compute the limits based on
-            # the full dataset, not just the subset.
-            if isinstance(self.attribute.parent, Subset):
-                return self.attribute.parent.data
-            else:
-                return self.attribute.parent
+            return self.attribute.parent
 
     @property
     def component_id(self):
-        if self.attribute is None:
-            return None
-        else:
-            return self.attribute
+        return None if self.attribute is None else self.attribute
 
     def set_cache(self, cache):
         self._cache = cache
@@ -193,21 +193,31 @@ class StateAttributeCacheHelper(object):
 
     def _update_values(self, **properties):
 
-        if hasattr(self, '_in_set'):
-            if self._in_set:
-                return
+        if hasattr(self, '_in_set') and self._in_set:
+            return
         if self.attribute is None:
             return
-        properties = dict((self._attribute_lookup_inv[key], value)
-                          for key, value in properties.items() if key in self._attribute_lookup_inv and self._attribute_lookup_inv[key] != 'attribute')
-        if len(properties) > 0:
+        if properties := {
+            self._attribute_lookup_inv[key]: value
+            for key, value in properties.items()
+            if key in self._attribute_lookup_inv
+            and self._attribute_lookup_inv[key] != 'attribute'
+        }:
             self.update_values(**properties)
 
     def _modifiers_as_dict(self):
-        return dict((prop, getattr(self, prop)) for prop in self.modifiers_names if prop in self._modifiers)
+        return {
+            prop: getattr(self, prop)
+            for prop in self.modifiers_names
+            if prop in self._modifiers
+        }
 
     def _values_as_dict(self):
-        return dict((prop, getattr(self, prop)) for prop in self.values_names if prop in self._values)
+        return {
+            prop: getattr(self, prop)
+            for prop in self.values_names
+            if prop in self._values
+        }
 
     def _update_cache(self):
         if self.component_id is not None:
@@ -311,7 +321,9 @@ class StateAttributeLimitsHelper(StateAttributeCacheHelper):
 
     def update_values(self, force=False, use_default_modifiers=False, **properties):
 
-        if not force and not any(prop in properties for prop in ('attribute', 'percentile', 'log')):
+        if not force and all(
+            prop not in properties for prop in ('attribute', 'percentile', 'log')
+        ):
             self.set(percentile='Custom')
             return
 
@@ -391,7 +403,10 @@ class StateAttributeSingleValueHelper(StateAttributeCacheHelper):
             raise ValueError('mode should be one of "values" or "component"')
 
     def update_values(self, use_default_modifiers=False, **properties):
-        if not any(prop in properties for prop in ('attribute',)) or self.data is None:
+        if (
+            all(prop not in properties for prop in ('attribute',))
+            or self.data is None
+        ):
             self.set()
         else:
             if self.mode == 'values':
@@ -429,7 +444,7 @@ class StateAttributeHistogramHelper(StateAttributeCacheHelper):
 
     def _apply_common_n_bin(self):
         for att in self._cache:
-            if not self.data.get_kind(att) == 'categorical':
+            if self.data.get_kind(att) != 'categorical':
                 self._cache[att]['n_bin'] = self._common_n_bin
 
     def _update_common_n_bin(self, common_n_bin):
@@ -444,7 +459,11 @@ class StateAttributeHistogramHelper(StateAttributeCacheHelper):
 
     def update_values(self, force=False, use_default_modifiers=False, **properties):
 
-        if not force and not any(prop in properties for prop in ('attribute', 'n_bin')) or self.data is None:
+        if (
+            not force
+            and all(prop not in properties for prop in ('attribute', 'n_bin'))
+            or self.data is None
+        ):
             self.set()
             return
 

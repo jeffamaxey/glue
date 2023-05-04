@@ -106,11 +106,18 @@ def hdf5_reader(filename, auto_merge=True, memmap=True, **kwargs):
     if len(datasets) == 0:
         return
 
-    if not auto_merge or len(datasets) == 1 or any([isinstance(data, Table) for data in datasets.values()]):
+    if (
+        not auto_merge
+        or len(datasets) == 1
+        or any(isinstance(data, Table) for data in datasets.values())
+    ):
         merge_data = False
     else:
         reference_shape = list(datasets.values())[0].shape
-        merge_data = all([data.shape == reference_shape and key.count('/') == 1 for key, data in datasets.items()])
+        merge_data = all(
+            data.shape == reference_shape and key.count('/') == 1
+            for key, data in datasets.items()
+        )
 
     groups = OrderedDict()
 

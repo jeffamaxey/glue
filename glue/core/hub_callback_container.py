@@ -61,12 +61,11 @@ class HubCallbackContainer(object):
 
     def _auto_remove(self, method_instance):
 
-        # Called when weakref detects that the instance on which a method was
-        # defined has been garbage collected.
-        remove = []
-        for key, value in self.callbacks.items():
-            if value[1] is method_instance or value[3] is method_instance:
-                remove.append(key)
+        remove = [
+            key
+            for key, value in self.callbacks.items()
+            if value[1] is method_instance or value[3] is method_instance
+        ]
         for key in remove:
             self.callbacks.pop(key)
 

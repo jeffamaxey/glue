@@ -33,8 +33,7 @@ def _ensure_only_component_references(cmd, references):
         tag = match.group('tag')
         if tag not in references or not \
                 isinstance(references[tag], ComponentID):
-            raise TypeError(
-                "Reference to %s, which is not a ComponentID" % tag)
+            raise TypeError(f"Reference to {tag}, which is not a ComponentID")
 
 
 def _reference_list(cmd, references):
@@ -62,8 +61,7 @@ def _reference_list(cmd, references):
     KeyError: if tags in the command aren't in the reference mapping
     """
     try:
-        return list(set(references[m.group('tag')]
-                        for m in TAG_RE.finditer(cmd)))
+        return list({references[m.group('tag')] for m in TAG_RE.finditer(cmd)})
     except KeyError:
         raise KeyError("Tags from command not in reference mapping")
 
@@ -94,12 +92,14 @@ def _dereference(cmd, references):
     def sub_func(match):
         tag = match.group('tag')
         if isinstance(references[tag], ComponentID):
-            return 'data[references["%s"], __view]' % tag
+            return f'data[references["{tag}"], __view]'
         elif isinstance(references[tag], Subset):
-            return 'references["%s"].to_mask(__view)' % tag
+            return f'references["{tag}"].to_mask(__view)'
         else:
-            raise TypeError("Tag %s maps to unrecognized type: %s" %
-                            (tag, type(references[tag])))
+            raise TypeError(
+                f"Tag {tag} maps to unrecognized type: {type(references[tag])}"
+            )
+
     return TAG_RE.sub(sub_func, cmd)
 
 
@@ -126,8 +126,7 @@ def _dereference_random(cmd):
 
 class InvalidTagError(ValueError):
     def __init__(self, tag, references):
-        msg = ("Tag %s not in reference mapping: %s" %
-               (tag, sorted(references.keys())))
+        msg = f"Tag {tag} not in reference mapping: {sorted(references.keys())}"
         self.tag = tag
         self.references = references
         super(InvalidTagError, self).__init__(msg)
@@ -242,15 +241,15 @@ class ParsedCommand(object):
         return eval(cmd, global_variables, locals())  # careful!
 
     def __gluestate__(self, context):
-        return dict(cmd=self._cmd,
-                    references=dict((k, context.id(v))
-                                    for k, v in self._references.items()))
+        return dict(
+            cmd=self._cmd,
+            references={k: context.id(v) for k, v in self._references.items()},
+        )
 
     @classmethod
     def __setgluestate__(cls, rec, context):
         cmd = rec['cmd']
-        ref = dict((k, context.object(v))
-                   for k, v in rec['references'].items())
+        ref = {k: context.object(v) for k, v in rec['references'].items()}
         return cls(cmd, ref)
 
 

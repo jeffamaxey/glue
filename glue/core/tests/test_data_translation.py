@@ -29,6 +29,7 @@ class CustomSelectionObject(object):
 
 def setup_module(self):
 
+
     @data_translator(FakeDataObject)
     class FakeDataObjectHandler:
 
@@ -44,6 +45,8 @@ def setup_module(self):
             obj.name = cid.label
             return obj
 
+
+
     @subset_state_translator('my_subset_translator')
     class FakeSubsetDefinitionTranslator:
         """
@@ -57,26 +60,23 @@ def setup_module(self):
 
             subset_state = subset.subset_state
 
-            if isinstance(subset_state, InequalitySubsetState):
-
-                if isinstance(subset_state.left, ComponentID):
-                    left = '{' + subset_state.left.label + '}'
-                else:
-                    left = subset_state.left
-
-                if isinstance(subset_state.right, ComponentID):
-                    right = '{' + subset_state.right.label + '}'
-                else:
-                    right = subset_state.right
-
-                c = CustomSelectionObject()
-                c.serialized = '{0} {1} {2}'.format(left, subset_state.operator.__name__, right)
-
-                return c
-
-            else:
+            if not isinstance(subset_state, InequalitySubsetState):
                 raise TypeError("my_subset_translator could not translate "
                                 "subset state of type {0}".format(subset_state.__class__.__name__))
+            left = (
+                '{' + subset_state.left.label + '}'
+                if isinstance(subset_state.left, ComponentID)
+                else subset_state.left
+            )
+            if isinstance(subset_state.right, ComponentID):
+                right = '{' + subset_state.right.label + '}'
+            else:
+                right = subset_state.right
+
+            c = CustomSelectionObject()
+            c.serialized = '{0} {1} {2}'.format(left, subset_state.operator.__name__, right)
+
+            return c
 
 
 def teardown_module(self):

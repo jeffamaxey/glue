@@ -333,8 +333,7 @@ class CustomSubsetState(SubsetState):
         return CustomSubsetState(self._coordinator, self._roi)
 
     def __gluestate__(self, context):
-        result = {}
-        result['viewer'] = context.id(self._coordinator.viewer)
+        result = {'viewer': context.id(self._coordinator.viewer)}
         result['roi'] = context.id(self._roi)
         return result
 
@@ -514,10 +513,17 @@ class CustomViewer(object, metaclass=CustomViewerMeta):
 
             properties[name] = property
 
-        options_cls = type(cls.__name__ + 'OptionsWidget',
-                           (BaseCustomOptionsWidget,), {'_widgets': widgets})
+        options_cls = type(
+            f'{cls.__name__}OptionsWidget',
+            (BaseCustomOptionsWidget,),
+            {'_widgets': widgets},
+        )
 
-        state_cls = type(cls.__name__ + 'ViewerState', (CustomMatplotlibViewerState,), properties)
+        state_cls = type(
+            f'{cls.__name__}ViewerState',
+            (CustomMatplotlibViewerState,),
+            properties,
+        )
 
         widget_dict = {'LABEL': cls.name,
                        'ui': cls.ui,
@@ -525,9 +531,9 @@ class CustomViewer(object, metaclass=CustomViewerMeta):
                        '_state_cls': state_cls,
                        '_coordinator_cls': cls}
 
-        viewer_cls = type(cls.__name__ + 'DataViewer',
-                          (CustomMatplotlibDataViewer,),
-                          widget_dict)
+        viewer_cls = type(
+            f'{cls.__name__}DataViewer', (CustomMatplotlibDataViewer,), widget_dict
+        )
 
         cls._viewer_cls = viewer_cls
         qt_client.add(viewer_cls)
@@ -538,7 +544,7 @@ class CustomViewer(object, metaclass=CustomViewerMeta):
             mod = getmodule(ViewerUserState)
             w = getattr(mod, c.__name__, None)
             if w is not None:
-                raise RuntimeError("Duplicate custom viewer detected %s" % c)
+                raise RuntimeError(f"Duplicate custom viewer detected {c}")
             setattr(mod, c.__name__, c)
             c.__module__ = mod.__name__
 
@@ -758,9 +764,11 @@ class CustomMatplotlibViewerState(MatplotlibDataViewerState):
     def __init__(self, *args, **kwargs):
         super(CustomMatplotlibViewerState, self).__init__(*args)
         self._cid_helpers = []
-        for name, property in self.iter_callback_properties():
-            if isinstance(property, DynamicComponentIDProperty):
-                self._cid_helpers.append(ComponentIDComboHelper(self, name))
+        self._cid_helpers.extend(
+            ComponentIDComboHelper(self, name)
+            for name, property in self.iter_callback_properties()
+            if isinstance(property, DynamicComponentIDProperty)
+        )
         self.add_callback('layers', self._on_layer_change)
         self.update_from_dict(kwargs)
 

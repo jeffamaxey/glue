@@ -45,10 +45,7 @@ class RadianTransform(object):
             x = np.deg2rad(x)
         if 'y' in self._coords:
             y = np.deg2rad(y)
-        if self._next_transform is not None:
-            return self._next_transform(x, y)
-        else:
-            return x, y
+        return (x, y) if self._next_transform is None else self._next_transform(x, y)
 
     def __gluestate__(self, context):
         return dict(state=context.do(self._state))

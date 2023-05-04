@@ -136,10 +136,7 @@ class BasicToolbar(QtWidgets.QToolBar):
                 action = QtWidgets.QAction(tool.action_text, parent)
 
         def toggle(checked):
-            if checked:
-                self.active_tool = tool
-            else:
-                self.active_tool = None
+            self.active_tool = tool if checked else None
 
         def trigger():
             self.active_tool = tool

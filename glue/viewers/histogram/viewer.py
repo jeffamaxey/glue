@@ -44,9 +44,7 @@ class MatplotlibHistogramMixin(object):
         if len(self.layers) == 0:
             return
 
-        x_date = 'datetime' in self.state.x_kinds
-
-        if x_date:
+        if x_date := 'datetime' in self.state.x_kinds:
             roi = roi.transformed(xfunc=mpl_to_datetime64 if x_date else None)
 
         bins = self.state.bins

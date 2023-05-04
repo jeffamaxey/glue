@@ -50,9 +50,7 @@ class MatplotlibLayerArtist(LayerArtist):
         for artist in self.mpl_artists:
             try:
                 artist.remove()
-            except ValueError:  # already removed
-                pass
-            except TypeError:  # can happen for e.g. errorbars
+            except (ValueError, TypeError):  # already removed
                 pass
             except AttributeError:  # can happen for Matplotlib 1.4
                 pass

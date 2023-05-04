@@ -72,8 +72,5 @@ def snap_to_grid(rectangles, padding=0.0):
     :param rectangles: List of Rectangle instances
     :returns: A dictionary mapping each input rectangle to a snapped position
     """
-    result = {}
     xs, ys = _snap_size(rectangles)
-    for r in rectangles:
-        result[r] = r.snap(xs, ys, padding=padding)
-    return result
+    return {r: r.snap(xs, ys, padding=padding) for r in rectangles}

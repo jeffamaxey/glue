@@ -112,7 +112,7 @@ def test_move_artist_empty():
     model = LayerArtistModel(mgrs)
     model.move_artist(None, 0)
 
-    assert mgrs == []
+    assert not mgrs
 
 
 def test_move_artist_single():

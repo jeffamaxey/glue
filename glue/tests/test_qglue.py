@@ -29,8 +29,9 @@ class TestQGlue(object):
 
         self.xy = {'x': x, 'y': y}
         self.dict_data = {'u': u, 'v': v}
-        self.recarray_data = np.rec.array([(0, 1), (2, 3)],
-                                          dtype=[(str('a'), int), (str('b'), int)])
+        self.recarray_data = np.rec.array(
+            [(0, 1), (2, 3)], dtype=[('a', int), ('b', int)]
+        )
         self.astropy_table = Table({'x': x, 'y': y})
         self.bad_data = {'x': x, 'u': u}
         self.hdulist = HDUList([ImageHDU(x, name='PRIMARY')])
@@ -46,7 +47,7 @@ class TestQGlue(object):
 
         # test for expected data, components
         for data in dc:
-            components = set(c.label for c in data.components)
+            components = {c.label for c in data.components}
             e = expected.pop(data.label)
             for component in e:
                 assert component in components

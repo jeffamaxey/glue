@@ -31,7 +31,7 @@ class TestParse(object):
     def test_reference_list(self):
         cmd = '{a} - {b} + {c}'
         refs = {'a': 1, 'b': 2, 'c': 3, 'd': 4}
-        expected = set([1, 2, 3])
+        expected = {1, 2, 3}
         result = set(parse._reference_list(cmd, refs))
         assert expected == result
 

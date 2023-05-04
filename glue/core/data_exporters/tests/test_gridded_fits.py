@@ -6,12 +6,13 @@ from astropy.io import fits
 
 from ..gridded_fits import fits_writer
 
-BITPIX = {}
-BITPIX[np.int16] = 16
-BITPIX[np.int32] = 32
-BITPIX[np.int64] = 64
-BITPIX[np.float32] = -32
-BITPIX[np.float64] = -64
+BITPIX = {
+    np.int16: 16,
+    np.int32: 32,
+    np.int64: 64,
+    np.float32: -32,
+    np.float64: -64,
+}
 
 
 @pytest.mark.parametrize('dtype', BITPIX.keys())

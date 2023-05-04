@@ -119,10 +119,7 @@ class TestComponentLink(object):
         to_id = ComponentID('to_label')
 
         def using(x):
-            if np.isscalar(x):
-                return float(x) * 2
-            else:
-                return x * 2
+            return float(x) * 2 if np.isscalar(x) else x * 2
 
         link = ComponentLink([from_id], to_id, using)
 
@@ -241,16 +238,16 @@ def test_inequality():
     s.subset_state = xpy > 22
     assert_array_equal(s.to_mask(), (x + y) > 22)
 
-    s.subset_state = 22 < xpy
-    assert_array_equal(s.to_mask(), 22 < (x + y))
+    s.subset_state = xpy > 22
+    assert_array_equal(s.to_mask(), x + y > 22)
 
-    s.subset_state = 22 <= xpy
-    assert_array_equal(s.to_mask(), 22 <= (x + y))
+    s.subset_state = xpy >= 22
+    assert_array_equal(s.to_mask(), x + y >= 22)
 
-    s.subset_state = 22 > xpy
-    assert_array_equal(s.to_mask(), 22 > (x + y))
+    s.subset_state = xpy < 22
+    assert_array_equal(s.to_mask(), x + y < 22)
 
-    s.subset_state = 22 >= xpy
+    s.subset_state = xpy <= 22
     assert_array_equal(s.to_mask(), 22 >= (x + y))
 
     s.subset_state = twentytwo < xpy
@@ -307,11 +304,7 @@ def test_efficiency():
                                   data.world_component_ids[:2],
                                   data.pixel_component_ids[:2])):
 
-        if i == 0:
-            expected_shape = (2, 3, 4, 5)
-        else:
-            expected_shape = (2, 3, 1, 1)
-
+        expected_shape = (2, 3, 4, 5) if i == 0 else (2, 3, 1, 1)
         for cls in [ComponentLink, BinaryComponentLink]:
 
             if cls is ComponentLink:

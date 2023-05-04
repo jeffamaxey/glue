@@ -109,12 +109,12 @@ def formatted_table_factory(format, label):
 
     @data_factory(label=label, identifier=lambda *a, **k: False)
     def factory(file, **kwargs):
-        kwargs['format'] = 'ascii.%s' % format
+        kwargs['format'] = f'ascii.{format}'
         return astropy_tabular_data(file, **kwargs)
 
     # rename function to its variable reference below
     # allows pickling to work
-    factory.__name__ = '%s_factory' % format
+    factory.__name__ = f'{format}_factory'
 
     return factory
 
@@ -133,5 +133,5 @@ except ImportError:
 else:
     @qglue_parser(Table)
     def _parse_data_astropy_table(data, label):
-        kwargs = dict((c, data[c]) for c in data.columns)
+        kwargs = {c: data[c] for c in data.columns}
         return [Data(label=label, **kwargs)]

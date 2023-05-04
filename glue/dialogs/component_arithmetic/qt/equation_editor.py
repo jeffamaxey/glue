@@ -38,16 +38,19 @@ class ColorizedCompletionTextEdit(CompletionTextEdit):
         super(ColorizedCompletionTextEdit, self).keyPressEvent(event)
         # NOTE: We use == here instead of & for the modifiers because we don't
         # want to catch e.g. control-shift-z or other combinations.
-        if event.modifiers() == Qt.ControlModifier and event.key() == Qt.Key_Z:
-            if len(self._undo_stack) > 1:
-                self._undo_stack.pop()
-                self.setHtml(self._undo_stack[-1])
-                text = self.toPlainText()
-                tc = self.textCursor()
-                tc.setPosition(len(text))
-                self.setTextCursor(tc)
-                self._cache = self._undo_stack[-1]
-                self.updated.emit()
+        if (
+            event.modifiers() == Qt.ControlModifier
+            and event.key() == Qt.Key_Z
+            and len(self._undo_stack) > 1
+        ):
+            self._undo_stack.pop()
+            self.setHtml(self._undo_stack[-1])
+            text = self.toPlainText()
+            tc = self.textCursor()
+            tc.setPosition(len(text))
+            self.setTextCursor(tc)
+            self._cache = self._undo_stack[-1]
+            self.updated.emit()
 
     def reformat_text(self):
 
@@ -68,9 +71,9 @@ class ColorizedCompletionTextEdit(CompletionTextEdit):
         def format_components(m):
             component = m.group(0)
             if component in self.word_list:
-                return "<font color='#0072B2'><b>" + component + "</b></font>"
+                return f"<font color='#0072B2'><b>{component}</b></font>"
             else:
-                return "<font color='#D55E00'><b>" + component + "</b></font>"
+                return f"<font color='#D55E00'><b>{component}</b></font>"
 
         html = TAG_RE.sub(format_components, text)
 

@@ -76,7 +76,9 @@ class EditSubsetModeToolBar(QtWidgets.QToolBar, HubListener):
         self.subset_combo.blockSignals(False)
 
     def _update_mode_visibility(self):
-        visible_modes = not self.subset_combo.currentIndex() == self.subset_combo.count() - 1
+        visible_modes = (
+            self.subset_combo.currentIndex() != self.subset_combo.count() - 1
+        )
         if visible_modes:
             self._label_subset_mode.setText("Mode:")
         else:
@@ -190,7 +192,7 @@ class EditSubsetModeToolBar(QtWidgets.QToolBar, HubListener):
             try:
                 mode = self._modes[mode]  # label to mode class
             except KeyError:
-                raise KeyError("Unrecognized mode: %s" % mode)
+                raise KeyError(f"Unrecognized mode: {mode}")
 
         self._backup_mode = self._backup_mode or self._edit_subset_mode.mode
         self._modes[mode].trigger()  # mode class to action

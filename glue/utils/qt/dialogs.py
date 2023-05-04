@@ -22,11 +22,7 @@ def pick_item(items, labels, title="Pick an item", label="Pick an item",
         The prompt message
     """
 
-    if default in items:
-        current = items.index(default)
-    else:
-        current = 0
-
+    current = items.index(default) if default in items else 0
     choice, isok = QtWidgets.QInputDialog.getItem(None, title, label,
                                                   labels, current=current,
                                                   editable=False)

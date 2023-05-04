@@ -66,7 +66,7 @@ class TestCommandStack(object):
         for cmd in cmds:
             self.stack.do(cmd)
 
-        for cmd in cmds[:-1]:
+        for _ in cmds[:-1]:
             self.stack.undo()
 
         with pytest.raises(IndexError):

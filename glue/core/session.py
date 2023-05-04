@@ -23,14 +23,8 @@ class Session(object):
 
     @property
     def application(self):
-        if self._application is None:
-            return None
-        else:
-            return self._application()
+        return None if self._application is None else self._application()
 
     @application.setter
     def application(self, value):
-        if value is None:
-            self._application = None
-        else:
-            self._application = weakref.ref(value)
+        self._application = None if value is None else weakref.ref(value)

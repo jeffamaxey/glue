@@ -49,8 +49,7 @@ class Command(object):
         kwargs = kwargs.copy()
         for k in self.kwargs:
             if k not in kwargs:
-                raise RuntimeError("Required keyword %s not passed to %s" %
-                                   (k, type(self)))
+                raise RuntimeError(f"Required keyword {k} not passed to {type(self)}")
             setattr(self, k, kwargs.pop(k))
         self.extra = kwargs
 
@@ -325,9 +324,8 @@ class ApplySubsetState(Command):
         override_mode = self.extra.get('override_mode')
         # when creating a new subset the creation mode is replace mode
         # fix bug #1931
-        if override_mode is None:
-            if len(mode._edit_subset) == 0:
-                override_mode = ReplaceMode
+        if override_mode is None and len(mode._edit_subset) == 0:
+            override_mode = ReplaceMode
 
         mode.update(self.data_collection, self.subset_state, override_mode=override_mode)
 

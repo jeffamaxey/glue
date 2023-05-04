@@ -61,8 +61,7 @@ def parse(argv):
     parser.add_option('--faulthandler', dest='faulthandler', action='store_true',
                       help="Run glue with the built-in faulthandler to debug segmentation faults", default=False)
 
-    err_msg = verify(parser, argv)
-    if err_msg:
+    if err_msg := verify(parser, argv):
         sys.stderr.write('\n%s\n' % err_msg)
         parser.print_help()
         sys.exit(1)
@@ -100,11 +99,7 @@ def load_data_files(datafiles):
 
     from glue.core.data_factories import load_data
 
-    datasets = []
-    for df in datafiles:
-        datasets.append(load_data(df))
-
-    return datasets
+    return [load_data(df) for df in datafiles]
 
 
 def run_tests():
@@ -157,8 +152,6 @@ def start_glue(gluefile=None, config=None, datafiles=None, maximized=True,
 
     from glue.app.qt import GlueApplication
 
-    datafiles = datafiles or []
-
     hub = None
 
     from qtpy.QtCore import QTimer
@@ -185,7 +178,7 @@ def start_glue(gluefile=None, config=None, datafiles=None, maximized=True,
     session = glue.core.Session(data_collection=data_collection, hub=hub)
     ga = GlueApplication(session=session)
 
-    if datafiles:
+    if datafiles := datafiles or []:
         with die_on_error("Error reading data file"):
             datasets = load_data_files(datafiles)
         ga.add_datasets(datasets, auto_merge=auto_merge)
@@ -213,8 +206,7 @@ def execute_script(script):
 def get_splash():
     """Instantiate a splash screen"""
     from glue.app.qt.splash_screen import QtSplashScreen
-    splash = QtSplashScreen()
-    return splash
+    return QtSplashScreen()
 
 
 def main(argv=sys.argv):
@@ -332,9 +324,11 @@ def load_plugins(splash=None, require_qt_plugins=False):
         except Exception as exc:
             # Here we check that some of the 'core' plugins load well and
             # raise an actual exception if not.
-            if item.module_name in REQUIRED_PLUGINS:
-                raise
-            elif item.module_name in REQUIRED_PLUGINS_QT and require_qt_plugins:
+            if (
+                item.module_name in REQUIRED_PLUGINS
+                or item.module_name in REQUIRED_PLUGINS_QT
+                and require_qt_plugins
+            ):
                 raise
             else:
                 logger.info("Loading plugin {0} failed "

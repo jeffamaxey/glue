@@ -145,7 +145,7 @@ class TestDataCollection(object):
 
     def test_iter(self):
         self.dc.append(self.data)
-        assert set(self.dc) == set([self.data])
+        assert set(self.dc) == {self.data}
 
     def test_len(self):
         assert len(self.dc) == 0

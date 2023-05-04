@@ -34,9 +34,7 @@ class ComponentManagerWidget(QtWidgets.QDialog):
         for data in data_collection:
 
             for cid in data.main_components:
-                comp_state = {}
-                comp_state['cid'] = cid
-                comp_state['label'] = cid.label
+                comp_state = {'cid': cid, 'label': cid.label}
                 self._state[data][cid] = comp_state
                 self._components_main[data].append(cid)
 
@@ -98,7 +96,7 @@ class ComponentManagerWidget(QtWidgets.QDialog):
         # we can check which ones are duplicates
         labels = [c.label for c in self._components_other[self.data]]
         labels.extend([c['label'] for c in self._state[self.data].values()])
-        if len(labels) == 0:
+        if not labels:
             return
         label_count = Counter(labels)
 
@@ -171,7 +169,7 @@ class ComponentManagerWidget(QtWidgets.QDialog):
 
             # Second deal with the removal of components
             for cid_old in cids_existing:
-                if not any(cid_old is cid_new for cid_new in cids_all):
+                if all(cid_old is not cid_new for cid_new in cids_all):
                     data.remove_component(cid_old)
 
             # Findally, reorder components as needed

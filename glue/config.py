@@ -160,13 +160,12 @@ class SettingRegistry(DictRegistry):
     def __getattr__(self, attr):
         if attr.startswith('_'):
             raise AttributeError("No such setting: {0}".format(attr))
+        if attr in self._members:
+            return self._members[attr]
+        elif attr in self._defaults:
+            return self._defaults[attr]
         else:
-            if attr in self._members:
-                return self._members[attr]
-            elif attr in self._defaults:
-                return self._defaults[attr]
-            else:
-                raise AttributeError("No such setting: {0}".format(attr))
+            raise AttributeError("No such setting: {0}".format(attr))
 
     def __setattr__(self, attr, value):
         if attr.startswith('_'):
@@ -188,10 +187,9 @@ class SettingRegistry(DictRegistry):
             yield key, value, self._validators[key]
 
     def __str__(self):
-        s = ""
-        for name, value, validator in self:
-            s += "{0}: {1}\n".format(name, value)
-        return s
+        return "".join(
+            "{0}: {1}\n".format(name, value) for name, value, validator in self
+        )
 
     def reset_defaults(self):
         self._members.clear()
@@ -246,8 +244,7 @@ class QGlueParserRegistry(Registry):
         return adder
 
     def __iter__(self):
-        for member in sorted(self.members, key=lambda x: -x.priority):
-            yield member
+        yield from sorted(self.members, key=lambda x: -x.priority)
 
 
 class DataImportRegistry(Registry):
@@ -402,23 +399,23 @@ class ColormapRegistry(Registry):
 
     def default_members(self):
         import matplotlib.cm as cm
-        members = []
-        members.append(['Gray', cm.gray])
-        members.append(['Viridis', cm.viridis])
-        members.append(['Plasma', cm.plasma])
-        members.append(['Inferno', cm.inferno])
-        members.append(['Magma', cm.magma])
-        members.append(['Purple-Blue', cm.PuBu])
-        members.append(['Yellow-Green-Blue', cm.YlGnBu])
-        members.append(['Yellow-Orange-Red', cm.YlOrRd])
-        members.append(['Red-Purple', cm.RdPu])
-        members.append(['Blue-Green', cm.BuGn])
-        members.append(['Hot', cm.hot])
-        members.append(['Red-Blue', cm.RdBu])
-        members.append(['Red-Yellow-Blue', cm.RdYlBu])
-        members.append(['Purple-Orange', cm.PuOr])
-        members.append(['Purple-Green', cm.PRGn])
-        return members
+        return [
+            ['Gray', cm.gray],
+            ['Viridis', cm.viridis],
+            ['Plasma', cm.plasma],
+            ['Inferno', cm.inferno],
+            ['Magma', cm.magma],
+            ['Purple-Blue', cm.PuBu],
+            ['Yellow-Green-Blue', cm.YlGnBu],
+            ['Yellow-Orange-Red', cm.YlOrRd],
+            ['Red-Purple', cm.RdPu],
+            ['Blue-Green', cm.BuGn],
+            ['Hot', cm.hot],
+            ['Red-Blue', cm.RdBu],
+            ['Red-Yellow-Blue', cm.RdYlBu],
+            ['Purple-Orange', cm.PuOr],
+            ['Purple-Green', cm.PRGn],
+        ]
 
     def add(self, label, cmap):
         """
@@ -474,11 +471,7 @@ class DataFactoryRegistry(Registry):
             identifier = lambda *a, **k: False
 
         if priority is None:
-            if deprecated:
-                priority = -1000
-            else:
-                priority = 0
-
+            priority = -1000 if deprecated else 0
         def adder(func):
             self.add(self.item(func, label, identifier, priority, deprecated))
             return func
@@ -486,8 +479,7 @@ class DataFactoryRegistry(Registry):
         return adder
 
     def __iter__(self):
-        for member in sorted(self.members, key=lambda x: (-x.priority, x.label)):
-            yield member
+        yield from sorted(self.members, key=lambda x: (-x.priority, x.label))
 
 
 class DataExporterRegistry(Registry):
@@ -505,8 +497,7 @@ class DataExporterRegistry(Registry):
         return adder
 
     def __iter__(self):
-        for member in sorted(self.members, key=lambda x: x.label):
-            yield member
+        yield from sorted(self.members, key=lambda x: x.label)
 
 
 class SubsetMaskExporterRegistry(DataExporterRegistry):
@@ -541,8 +532,7 @@ class DataTranslatorRegistry(Registry):
         return adder
 
     def __iter__(self):
-        for member in sorted(self.members, key=lambda x: -x.priority):
-            yield member
+        yield from sorted(self.members, key=lambda x: -x.priority)
 
     def remove(self, target_cls):
         for member in self.members[:]:
@@ -585,8 +575,7 @@ class SubsetDefinitionTranslatorRegistry(Registry):
         return adder
 
     def __iter__(self):
-        for member in sorted(self.members, key=lambda x: -x.priority):
-            yield member
+        yield from sorted(self.members, key=lambda x: -x.priority)
 
     def remove(self, format):
         for member in self.members[:]:
@@ -603,7 +592,9 @@ class SubsetDefinitionTranslatorRegistry(Registry):
                 return translator.handler
         all_formats = [translator.format for translator in self]
         if format is None:
-            raise ValueError("Subset state handler format not set - should be one of:" + format_choices(all_formats))
+            raise ValueError(
+                f"Subset state handler format not set - should be one of:{format_choices(all_formats)}"
+            )
         else:
             raise ValueError("Invalid subset state handler format '{0}' - should be one of:".format(format) + format_choices(all_formats))
 
@@ -819,7 +810,7 @@ class BooleanSetting(object):
 
     def __call__(self, state=None):
         if state not in [None, True, False]:
-            raise ValueError("Invalid True/False setting: %s" % state)
+            raise ValueError(f"Invalid True/False setting: {state}")
 
         if state is not None:
             self.state = state
@@ -857,14 +848,13 @@ class KeyboardShortcut(DictRegistry):
                         self.members[viewer][keybind] = function
                 else:
                     self.members[viewer] = {keybind: function}
-        else:
-            if None in self.members:
-                if keybind in self.members[None]:
-                    raise ValueError("Keyboard shortcut '{0}' already registered in {1}".format(keybind, None))
-                else:
-                    self.members[None][keybind] = function
+        elif None in self.members:
+            if keybind in self.members[None]:
+                raise ValueError("Keyboard shortcut '{0}' already registered in {1}".format(keybind, None))
             else:
-                self.members[None] = {keybind: function}
+                self.members[None][keybind] = function
+        else:
+            self.members[None] = {keybind: function}
 
     def __call__(self, keybind, valid_viewers):
         def adder(func):
@@ -909,8 +899,7 @@ class LayerArtistMakerRegistry(Registry):
         return adder
 
     def __iter__(self):
-        for member in sorted(self.members, key=lambda x: -x.priority):
-            yield member
+        yield from sorted(self.members, key=lambda x: -x.priority)
 
 
 class SessionPatchRegistry(Registry):
@@ -942,8 +931,7 @@ class SessionPatchRegistry(Registry):
         return adder
 
     def __iter__(self):
-        for member in sorted(self.members, key=lambda x: -x.priority):
-            yield member
+        yield from sorted(self.members, key=lambda x: -x.priority)
 
 
 layer_artist_maker = LayerArtistMakerRegistry()

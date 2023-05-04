@@ -97,8 +97,8 @@ class ConstraintsWidget(QtWidgets.QWidget):
         limited = limited.isChecked()
         lo = lo.text()
         hi = hi.text()
-        limited = limited and not ((not lo) or (not hi))
-        limits = None if not limited else [float(lo), float(hi)]
+        limited = limited and bool(lo and hi)
+        limits = [float(lo), float(hi)] if limited else None
         return dict(value=value, fixed=fixed, limits=limits)
 
     def update_constraints(self, fitter):
@@ -134,8 +134,7 @@ class FitSettingsWidget(QtWidgets.QDialog):
             self.widgets[k] = item.widget
             self.forms[k] = item  # need to prevent garbage collection
 
-        constraints = fitter.constraints
-        if constraints:
+        if constraints := fitter.constraints:
             self.constraints = ConstraintsWidget(constraints)
             l.addRow(self.constraints)
         else:

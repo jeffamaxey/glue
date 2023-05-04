@@ -33,9 +33,7 @@ class PythonListModel(QtCore.QAbstractListModel):
 
     def headerData(self, section, orientation, role):
         """Column labels"""
-        if role != Qt.DisplayRole:
-            return None
-        return "%i" % section
+        return None if role != Qt.DisplayRole else "%i" % section
 
     def row_label(self, row):
         """ The textual label for the row"""
@@ -45,7 +43,7 @@ class PythonListModel(QtCore.QAbstractListModel):
         """Retrieve data at each index"""
         if not index.isValid():
             return None
-        if role == Qt.DisplayRole or role == Qt.EditRole:
+        if role in [Qt.DisplayRole, Qt.EditRole]:
             return self.row_label(index.row())
         if role == Qt.UserRole:
             return self.items[index.row()]

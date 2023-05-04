@@ -236,7 +236,7 @@ class DataCollection(HubListener):
                                "to a different Hub")
 
         if not isinstance(hub, Hub):
-            raise TypeError("Input is not a Hub object: %s" % type(hub))
+            raise TypeError(f"Input is not a Hub object: {type(hub)}")
         self.hub = hub
 
         # re-assign all data, subset hub instances to this hub
@@ -349,12 +349,10 @@ class DataCollection(HubListener):
         master = Data(label=label)
         self.append(master)
 
-        master.coords = data[0].coords
-        for i, d in enumerate(data):
-            if isinstance(d.coords, WCSCoordinates):
-                master.coords = d.coords
-                break
-
+        master.coords = next(
+            (d.coords for d in data if isinstance(d.coords, WCSCoordinates)),
+            data[0].coords,
+        )
         # Find ambiguous components (ones which have labels in more than one
         # dataset
 
@@ -395,21 +393,22 @@ class DataCollection(HubListener):
         return tuple(self._subset_groups)
 
     def __contains__(self, obj):
-        return (obj in self._data or
-                    obj in self.subset_groups or
-                    any([data.label == obj for data in self._data]))
+        return (
+            obj in self._data
+            or obj in self.subset_groups
+            or any(data.label == obj for data in self._data)
+        )
 
     def __getitem__(self, key):
-        if isinstance(key, str):
-            matches = [data for data in self._data if data.label == key]
-            if len(matches) == 0:
-                raise ValueError("No data found with the label '{0}'".format(key))
-            elif len(matches) > 1:
-                raise ValueError("Several datasets were found with the label '{0}'".format(key))
-            else:
-                return matches[0]
-        else:
+        if not isinstance(key, str):
             return self._data[key]
+        matches = [data for data in self._data if data.label == key]
+        if not matches:
+            raise ValueError("No data found with the label '{0}'".format(key))
+        elif len(matches) > 1:
+            raise ValueError("Several datasets were found with the label '{0}'".format(key))
+        else:
+            return matches[0]
 
     def __setitem__(self, key, data):
         """

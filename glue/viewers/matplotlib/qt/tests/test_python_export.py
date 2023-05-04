@@ -33,10 +33,7 @@ class BaseTestExportPython:
         self.viewer.export_as_script(script)
         subprocess.call([sys.executable, script])
 
-        msg = compare_images(expected, actual, tol=tol)
-
-        if msg:
-
+        if msg := compare_images(expected, actual, tol=tol):
             from base64 import b64encode
 
             print("SCRIPT:")

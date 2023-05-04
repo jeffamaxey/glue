@@ -27,9 +27,8 @@ def unique_data_iter(datasets):
         if isinstance(dataset, BaseData):
             if dataset not in datasets_new:
                 datasets_new.append(dataset)
-        else:
-            if dataset.data not in datasets_new:
-                datasets_new.append(dataset.data)
+        elif dataset.data not in datasets_new:
+            datasets_new.append(dataset.data)
     return datasets_new
 
 
@@ -169,10 +168,7 @@ class ComponentIDComboHelper(ComboHelper):
             self._none_label = ''
 
         def display_func_label(cid):
-            if cid is None:
-                return self._none_label
-            else:
-                return cid.label
+            return self._none_label if cid is None else cid.label
 
         self.display = display_func_label
 
@@ -355,15 +351,19 @@ class ComponentIDComboHelper(ComboHelper):
                         (data.get_kind(cid) == 'categorical' and self.categorical)):
                     cids.append(cid)
             if len(cids) > 1:
-                if self.pixel_coord or self.world_coord or (self.derived and len(derived_components) > 0):
+                if (
+                    self.pixel_coord
+                    or self.world_coord
+                    or self.derived
+                    and derived_components
+                ):
                     choices += cids
                 else:
                     choices += cids[1:]
 
             if self.numeric and self.derived:
                 cids = [ChoiceSeparator('Derived components')]
-                for cid in derived_components:
-                    cids.append(cid)
+                cids.extend(iter(derived_components))
                 if len(cids) > 1:
                     choices += cids
 
@@ -442,7 +442,7 @@ class BaseDataComboHelper(ComboHelper):
             self.hub = None
 
     def refresh(self, *args):
-        self.choices = [data for data in self._datasets]
+        self.choices = list(self._datasets)
         self.refresh_component_ids()
 
     def refresh_component_ids(self, *args):

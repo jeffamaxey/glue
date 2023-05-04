@@ -35,7 +35,7 @@ class Coordinates(BaseLowLevelWCS, metaclass=abc.ABCMeta):
     def __init__(self, n_dim=None, pixel_n_dim=None, world_n_dim=None):
         self._pixel_n_dim = n_dim or pixel_n_dim
         self._world_n_dim = n_dim or world_n_dim
-        self._world_uuids = [str(uuid.uuid4()) for i in range(self._world_n_dim)]
+        self._world_uuids = [str(uuid.uuid4()) for _ in range(self._world_n_dim)]
 
     @property
     def pixel_n_dim(self):
@@ -223,11 +223,8 @@ def coordinates_from_header(header, hdulist=None):
             return WCSCoordinates(header, hdulist)
         except Exception as e:
             logging.getLogger(__name__).warn(
-                "\n\n*******************************\n"
-                "Encounted an error during WCS parsing. "
-                "Discarding world coordinates! "
-                "\n{}\n"
-                "*******************************\n\n".format(str(e)))
+                f"\n\n*******************************\nEncounted an error during WCS parsing. Discarding world coordinates! \n{str(e)}\n*******************************\n\n"
+            )
     try:
         return IdentityCoordinates(header.get('NAXIS', 2))
     except Exception:

@@ -21,8 +21,7 @@ def clone(object, include_data=False):
     oid = gs.id(object)
     dump = gs.dumps()
     gu = GlueUnSerializer.loads(dump)
-    result = gu.object(oid)
-    return result
+    return gu.object(oid)
 
 
 def doubler(x):
@@ -40,9 +39,12 @@ def containers_equal(c1, c2):
         for a, b in zip(c1, c2):
             if not containers_equal(a, b):
                 return False
-            if isinstance(c1, dict) and isinstance(c2, dict):
-                if not containers_equal(c1[a], c2[b]):
-                    return False
+            if (
+                isinstance(c1, dict)
+                and isinstance(c2, dict)
+                and not containers_equal(c1[a], c2[b])
+            ):
+                return False
     except TypeError:
         pass
 

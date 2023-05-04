@@ -28,13 +28,13 @@ def main():
     dest = config.CFG_DIR
 
     if not os.path.exists(dest):
-        print("Creating directory %s" % dest)
+        print(f"Creating directory {dest}")
         os.makedirs(dest)
 
     infile = os.path.join(glue.__path__[0], 'default_config.py')
     outfile = os.path.join(dest, 'config.py')
 
-    print("Creating file %s" % outfile)
+    print(f"Creating file {outfile}")
 
     if os.path.exists(outfile):
         clobber = get_clobber()

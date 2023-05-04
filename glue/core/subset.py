@@ -31,7 +31,7 @@ OPSYM = {operator.ge: '>=', operator.gt: '>',
          operator.and_: '&', operator.or_: '|',
          operator.xor: '^', operator.eq: '==',
          operator.ne: '!='}
-SYMOP = dict((v, k) for k, v in OPSYM.items())
+SYMOP = {v: k for k, v in OPSYM.items()}
 
 
 class Subset(object):
@@ -256,14 +256,13 @@ class Subset(object):
             Name of format to write to. Currently, only "fits" is supported.
         """
         mask = np.short(self.to_mask())
-        if format == 'fits':
-            from astropy.io import fits
-            try:
-                fits.writeto(file_name, mask, overwrite=True)
-            except TypeError:
-                fits.writeto(file_name, mask, clobber=True)
-        else:
-            raise AttributeError("format not supported: %s" % format)
+        if format != 'fits':
+            raise AttributeError(f"format not supported: {format}")
+        from astropy.io import fits
+        try:
+            fits.writeto(file_name, mask, overwrite=True)
+        except TypeError:
+            fits.writeto(file_name, mask, clobber=True)
 
     @contract(file_name='string')
     def read_mask(self, file_name):
@@ -272,7 +271,7 @@ class Subset(object):
             with fits.open(file_name) as hdulist:
                 mask = hdulist[0].data
         except IOError:
-            raise IOError("Could not read %s (not a fits file?)" % file_name)
+            raise IOError(f"Could not read {file_name} (not a fits file?)")
         ind = np.where(mask.flat)[0]
         state = ElementSubsetState(indices=ind)
         self.subset_state = state
@@ -312,13 +311,9 @@ class Subset(object):
         self.subset_state = state
 
     def __str__(self):
-        dlabel = "(no data)"
-        if self.data is not None:
-            dlabel = "(data: %s)" % self.data.label
-        slabel = "Subset: (no label)"
-        if self.label:
-            slabel = "Subset: %s" % self.label
-        return "%s %s" % (slabel, dlabel)
+        dlabel = f"(data: {self.data.label})" if self.data is not None else "(no data)"
+        slabel = f"Subset: {self.label}" if self.label else "Subset: (no label)"
+        return f"{slabel} {dlabel}"
 
     def __repr__(self):
         return self.__str__()
@@ -541,17 +536,14 @@ class RoiSubsetStateNd(SubsetState):
     @contract(data='isinstance(Data)', view='array_view')
     def to_mask(self, data, view=None):
 
-        # TODO: make sure that pixel components don't actually take up much
-        #       memory and are just views
-
-        raw_comps = []
-        for att in self._atts:
-            raw_comps.append(data[att, view])
+        raw_comps = [data[att, view] for att in self._atts]
         res_shape = raw_comps[0].shape
         if not self.roi.defined():
             return np.zeros(raw_comps[0].shape, dtype=bool)
 
-        if raw_comps[0].ndim == data.ndim and all([att in data.pixel_component_ids for att in self._atts]):
+        if raw_comps[0].ndim == data.ndim and all(
+            att in data.pixel_component_ids for att in self._atts
+        ):
             # This is a special case - the ROI is defined in pixel space, so we
             # can apply it to a single slice and then broadcast it to all other
             # dimensions. We start off by extracting a slice which takes only
@@ -573,9 +565,7 @@ class RoiSubsetStateNd(SubsetState):
         if self.pretransform:
             transformed_points = []
             for slices in iterate_chunks(raw_comps[0].shape, n_max=1000000):
-                comp_subsets = []
-                for raw_comp in raw_comps:
-                    comp_subsets.append(raw_comp[slices])
+                comp_subsets = [raw_comp[slices] for raw_comp in raw_comps]
                 res = self.pretransform(*comp_subsets)
 
                 # Do this here in case the pretransform changes the dimensionality
@@ -716,8 +706,7 @@ class CategoricalROISubsetState(SubsetState):
     def from_range(categories, att, lo, hi):
 
         roi = CategoricalROI.from_range(categories, lo, hi)
-        subset = CategoricalROISubsetState(roi=roi, att=att)
-        return subset
+        return CategoricalROISubsetState(roi=roi, att=att)
 
     def __gluestate__(self, context):
         return dict(att=context.id(self.att),
@@ -791,8 +780,7 @@ class RangeSubsetState(SubsetState):
     @contract(data='isinstance(Data)', view='array_view')
     def to_mask(self, data, view=None):
         x = data[self.att, view]
-        result = (x >= self.lo) & (x <= self.hi)
-        return result
+        return (x >= self.lo) & (x <= self.hi)
 
     def copy(self):
         return RangeSubsetState(self.lo, self.hi, self.att)
@@ -932,16 +920,16 @@ class CategoricalROISubsetState2D(SubsetState):
         # ensure that it is more efficient for large numbers of categories and
         # values.
         for i in range(len(labels1)):
-            if labels1[i] in self.categories:
-                if labels2[i] in self.categories[labels1[i]]:
-                    mask[i] = True
+            if (
+                labels1[i] in self.categories
+                and labels2[i] in self.categories[labels1[i]]
+            ):
+                mask[i] = True
 
         return mask
 
     def copy(self):
-        result = CategoricalROISubsetState2D(self.categories,
-                                             self.att1, self.att2)
-        return result
+        return CategoricalROISubsetState2D(self.categories, self.att1, self.att2)
 
     def __gluestate__(self, context):
         return dict(categories=self.categories,
@@ -1045,10 +1033,9 @@ class CategoricalMultiRangeSubsetState(SubsetState):
         return mask
 
     def copy(self):
-        result = CategoricalMultiRangeSubsetState(self.ranges,
-                                                  self.cat_att,
-                                                  self.num_att)
-        return result
+        return CategoricalMultiRangeSubsetState(
+            self.ranges, self.cat_att, self.num_att
+        )
 
     def __gluestate__(self, context):
         return dict(ranges=self.ranges,
@@ -1094,7 +1081,7 @@ class CompositeSubsetState(SubsetState):
 
     def __str__(self):
         sym = OPSYM.get(self.op, self.op)
-        return "(%s %s %s)" % (self.state1, sym, self.state2)
+        return f"({self.state1} {sym} {self.state2})"
 
 
 class OrState(CompositeSubsetState):
@@ -1141,7 +1128,7 @@ class InvertState(CompositeSubsetState):
         return ~self.state1.to_mask(data, view)
 
     def __str__(self):
-        return "(~%s)" % self.state1
+        return f"(~{self.state1})"
 
 
 class MultiOrState(SubsetState):
@@ -1472,10 +1459,7 @@ class ElementSubsetState(SubsetState):
     def __init__(self, indices=None, data=None):
         super(ElementSubsetState, self).__init__()
         self._indices = indices
-        if data is None:
-            self._data_uuid = None
-        else:
-            self._data_uuid = data.uuid
+        self._data_uuid = None if data is None else data.uuid
 
     @property
     def indices(self):
@@ -1501,22 +1485,21 @@ class ElementSubsetState(SubsetState):
 
     @memoize
     def to_mask(self, data, view=None):
-        if data.uuid == self._data_uuid or self._data_uuid is None:
-            # XXX this is inefficient for views
-            result = np.zeros(data.shape, dtype=bool)
-            if self._indices is not None:
-                try:
-                    result.flat[self._indices] = True
-                except IndexError:
-                    if self._data_uuid is None:
-                        raise IncompatibleAttribute()
-                    else:
-                        raise
-            if view is not None:
-                result = result[view]
-            return result
-        else:
+        if data.uuid != self._data_uuid and self._data_uuid is not None:
             raise IncompatibleAttribute()
+        # XXX this is inefficient for views
+        result = np.zeros(data.shape, dtype=bool)
+        if self._indices is not None:
+            try:
+                result.flat[self._indices] = True
+            except IndexError:
+                if self._data_uuid is None:
+                    raise IncompatibleAttribute()
+                else:
+                    raise
+        if view is not None:
+            result = result[view]
+        return result
 
     @property
     def attributes(self):
@@ -1567,16 +1550,18 @@ class InequalitySubsetState(SubsetState):
         super(InequalitySubsetState, self).__init__()
         from glue.core.data import ComponentID
         if operator not in VALID_INEQUALTIY_OPS:
-            raise TypeError("Invalid boolean operator: %s" % operator)
+            raise TypeError(f"Invalid boolean operator: {operator}")
         if not isinstance(left, (ComponentID, numbers.Number,
                                  ComponentLink, str)):
-            raise TypeError("Input must be ComponentID or NumberType or string: %s"
-                            % type(left))
+            raise TypeError(
+                f"Input must be ComponentID or NumberType or string: {type(left)}"
+            )
 
         if not isinstance(right, (ComponentID, numbers.Number,
                                   ComponentLink, str)):
-            raise TypeError("Input must be ComponentID or NumberType or string: %s"
-                            % type(right))
+            raise TypeError(
+                f"Input must be ComponentID or NumberType or string: {type(right)}"
+            )
         self._left = left
         self._right = right
         self._operator = operator
@@ -1640,10 +1625,10 @@ class InequalitySubsetState(SubsetState):
 
     def __str__(self):
         sym = OPSYM.get(self._operator, self._operator)
-        return "(%s %s %s)" % (self._left, sym, self._right)
+        return f"({self._left} {sym} {self._right})"
 
     def __repr__(self):
-        return '<%s: %s>' % (self.__class__.__name__, self)
+        return f'<{self.__class__.__name__}: {self}>'
 
 
 class FloodFillSubsetState(MaskSubsetState):
@@ -1863,11 +1848,10 @@ def _combine(subsets, operator):
 def combine_multiple(subsets, operator):
     if len(subsets) == 0:
         return SubsetState()
-    else:
-        combined = subsets[0]
-        for subset in subsets[1:]:
-            combined = operator(combined, subset)
-        return combined
+    combined = subsets[0]
+    for subset in subsets[1:]:
+        combined = operator(combined, subset)
+    return combined
 
 
 def roi_to_subset_state(roi, x_att=None, y_att=None, x_categories=None, y_categories=None, use_pretransform=False):
@@ -1913,14 +1897,14 @@ def roi_to_subset_state(roi, x_att=None, y_att=None, x_categories=None, y_catego
 
         else:
 
+            # For each category, we check which categories along the other
+            # axis fall inside the polygon:
+
+            selection = {}
+
             # The selection is polygon-like, which requires special care.
 
             if x_categories is not None and y_categories is not None:
-
-                # For each category, we check which categories along the other
-                # axis fall inside the polygon:
-
-                selection = {}
 
                 for code, label in enumerate(x_categories):
 
@@ -1940,20 +1924,6 @@ def roi_to_subset_state(roi, x_att=None, y_att=None, x_categories=None, y_catego
                 return CategoricalROISubsetState2D(selection, x_att, y_att)
 
             else:
-
-                # If one of the components is not categorical, we treat this as
-                # if each categorical component was mapped to a numerical value,
-                # and at each value, we keep track of the polygon intersection
-                # with the component. This will result in zero, one, or multiple
-                # separate numerical ranges for each categorical value.
-
-                # TODO: if we ever allow the category order to be changed, we
-                # need to figure out how to update this!
-
-                # We loop over each category and for each one we find the
-                # numerical ranges
-
-                selection = {}
 
                 if x_categories is not None:
                     categories = x_categories

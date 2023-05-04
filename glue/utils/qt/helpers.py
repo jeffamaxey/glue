@@ -43,11 +43,7 @@ def update_combobox(combo, labeldata, default_index=0, block_signals=True):
     if block_signals:
         combo.blockSignals(True)
     idx = combo.currentIndex()
-    if idx >= 0:
-        current = combo.itemData(idx)
-    else:
-        current = None
-
+    current = combo.itemData(idx) if idx >= 0 else None
     combo.clear()
     index = None
     for i, (label, data) in enumerate(labeldata):
@@ -87,10 +83,10 @@ class GlueTabBar(QtWidgets.QTabBar):
             Index of tab to edit. Defaults to current index
         """
         index = index or self.currentIndex()
-        label = get_text("New Tab Label")
-        if not label:
+        if label := get_text("New Tab Label"):
+            self.rename_tab(index, label)
+        else:
             return
-        self.rename_tab(index, label)
 
     def rename_tab(self, index, label):
         """
@@ -222,8 +218,11 @@ def qurl_to_path(url):
 
     # Workaround for a Qt bug that causes paths to start with a /
     # on Windows: https://bugreports.qt.io/browse/QTBUG-46417
-    if sys.platform.startswith('win'):
-        if path.startswith('/') and path[2] == ':':
-            path = path[1:]
+    if (
+        sys.platform.startswith('win')
+        and path.startswith('/')
+        and path[2] == ':'
+    ):
+        path = path[1:]
 
     return path

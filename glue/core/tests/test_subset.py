@@ -176,7 +176,7 @@ class TestSubset(object):
         s.to_index_list = MagicMock()
         s.to_index_list.return_value = []
         get = s['test']
-        assert list(get) == []
+        assert not list(get)
 
     def test_state_with_array(self):
         d = Data(x=[1, 2, 3])
@@ -512,9 +512,7 @@ def roifac3d(comp, cid):
     roi_2d = RectangularROI(0.5, 0.5, 1.5, 1.5)
     roi_3d = Projected3dROI(roi_2d=roi_2d, projection_matrix=np.arange(16).reshape((4, 4)))
 
-    result = RoiSubsetState3d(xatt=cid, yatt=cid, zatt=cid, roi=roi_3d)
-
-    return result
+    return RoiSubsetState3d(xatt=cid, yatt=cid, zatt=cid, roi=roi_3d)
 
 
 def rangefac(comp, cid):
@@ -611,7 +609,7 @@ def test_inequality_state_str():
     assert str(x > 3) == '(x > 3)'
     assert str(x < 2) == '(x < 2)'
     assert str(x < y) == '(x < y)'
-    assert str((3 * x) < 5) == '((3 * x) < 5)'
+    assert str(x < 5 / 3) == '((3 * x) < 5)'
     assert str((x < y) & (x < 2)) == '((x < y) & (x < 2))'
     assert str((x < y) | (x < 2)) == '((x < y) | (x < 2))'
     assert str(~(x < y)) == '(~(x < y))'

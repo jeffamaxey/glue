@@ -54,10 +54,11 @@ class AggregateSlice(object):
         self.function = function
 
     def __gluestate__(self, context):
-        state = dict(slice=context.do(self.slice),
-                     center=self.center,
-                     function=context.do(self.function))
-        return state
+        return dict(
+            slice=context.do(self.slice),
+            center=self.center,
+            function=context.do(self.function),
+        )
 
     @classmethod
     def __setgluestate__(cls, rec, context):
@@ -208,7 +209,7 @@ class ImageViewerState(MatplotlibDataViewerState):
             if isinstance(layer_state.layer, BaseData):
                 layer_state_by_data[layer_state.layer].append(layer_state)
 
-        for data, layer_states in layer_state_by_data.items():
+        for layer_states in layer_state_by_data.values():
             if len(layer_states) > 1:
                 for layer_state in layer_states:
                     # Scatter layers don't have global_sync so we need to be
@@ -257,48 +258,48 @@ class ImageViewerState(MatplotlibDataViewerState):
     @defer_draw
     def _on_xatt_world_change(self, *args):
 
-        if self.x_att_world is not None:
+        if self.x_att_world is None:
+            return
+        with delay_callback(self, 'y_att_world', 'x_att'):
 
-            with delay_callback(self, 'y_att_world', 'x_att'):
-
-                if self.x_att_world == self.y_att_world:
-                    if self._display_world:
-                        world_ids = self.reference_data.world_component_ids
-                    else:
-                        world_ids = self.reference_data.pixel_component_ids
-                    if self.x_att_world == world_ids[-1]:
-                        self.y_att_world = world_ids[-2]
-                    else:
-                        self.y_att_world = world_ids[-1]
-
+            if self.x_att_world == self.y_att_world:
                 if self._display_world:
-                    index = self.reference_data.world_component_ids.index(self.x_att_world)
-                    self.x_att = self.reference_data.pixel_component_ids[index]
+                    world_ids = self.reference_data.world_component_ids
                 else:
-                    self.x_att = self.x_att_world
+                    world_ids = self.reference_data.pixel_component_ids
+                if self.x_att_world == world_ids[-1]:
+                    self.y_att_world = world_ids[-2]
+                else:
+                    self.y_att_world = world_ids[-1]
+
+            if self._display_world:
+                index = self.reference_data.world_component_ids.index(self.x_att_world)
+                self.x_att = self.reference_data.pixel_component_ids[index]
+            else:
+                self.x_att = self.x_att_world
 
     @defer_draw
     def _on_yatt_world_change(self, *args):
 
-        if self.y_att_world is not None:
+        if self.y_att_world is None:
+            return
+        with delay_callback(self, 'x_att_world', 'y_att'):
 
-            with delay_callback(self, 'x_att_world', 'y_att'):
-
-                if self.y_att_world == self.x_att_world:
-                    if self._display_world:
-                        world_ids = self.reference_data.world_component_ids
-                    else:
-                        world_ids = self.reference_data.pixel_component_ids
-                    if self.y_att_world == world_ids[-1]:
-                        self.x_att_world = world_ids[-2]
-                    else:
-                        self.x_att_world = world_ids[-1]
-
+            if self.y_att_world == self.x_att_world:
                 if self._display_world:
-                    index = self.reference_data.world_component_ids.index(self.y_att_world)
-                    self.y_att = self.reference_data.pixel_component_ids[index]
+                    world_ids = self.reference_data.world_component_ids
                 else:
-                    self.y_att = self.y_att_world
+                    world_ids = self.reference_data.pixel_component_ids
+                if self.y_att_world == world_ids[-1]:
+                    self.x_att_world = world_ids[-2]
+                else:
+                    self.x_att_world = world_ids[-1]
+
+            if self._display_world:
+                index = self.reference_data.world_component_ids.index(self.y_att_world)
+                self.y_att = self.reference_data.pixel_component_ids[index]
+            else:
+                self.y_att = self.y_att_world
 
     def _set_reference_data(self):
         if self.reference_data is None:
@@ -328,15 +329,14 @@ class ImageViewerState(MatplotlibDataViewerState):
         slices = []
         agg_func = []
         for i in range(self.reference_data.ndim):
-            if i == self.x_att.axis or i == self.y_att.axis:
+            if i in [self.x_att.axis, self.y_att.axis]:
                 slices.append(slice(None))
                 agg_func.append(None)
+            elif isinstance(self.slices[i], AggregateSlice):
+                slices.append(self.slices[i].slice)
+                agg_func.append(self.slices[i].function)
             else:
-                if isinstance(self.slices[i], AggregateSlice):
-                    slices.append(self.slices[i].slice)
-                    agg_func.append(self.slices[i].function)
-                else:
-                    slices.append(self.slices[i])
+                slices.append(self.slices[i])
         transpose = self.y_att.axis > self.x_att.axis
         return slices, agg_func, transpose
 
@@ -356,11 +356,10 @@ class ImageViewerState(MatplotlibDataViewerState):
                 slices.append('x')
             elif i == self.y_att.axis:
                 slices.append('y')
+            elif isinstance(self.slices[i], AggregateSlice):
+                slices.append(self.slices[i].center)
             else:
-                if isinstance(self.slices[i], AggregateSlice):
-                    slices.append(self.slices[i].center)
-                else:
-                    slices.append(self.slices[i])
+                slices.append(self.slices[i])
         return slices[::-1]
 
     def flip_x(self):
@@ -397,10 +396,7 @@ class BaseImageLayerState(MatplotlibLayerState):
         shape = self.viewer_state.reference_data.shape
         shape_slice = shape[y_axis], shape[x_axis]
 
-        if view is None:
-            return shape_slice
-        else:
-            return view_shape(shape_slice, view)
+        return shape_slice if view is None else view_shape(shape_slice, view)
 
     def get_sliced_data(self, view=None, bounds=None):
 

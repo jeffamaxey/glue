@@ -87,7 +87,7 @@ class HistogramLayerArtist(MatplotlibLayerArtist):
                 artist.remove()
             self.mpl_artists = self.mpl_artists[:len(mpl_hist)]
         elif len(self.mpl_artists) < len(mpl_hist):
-            for i in range(len(mpl_hist) - len(self.mpl_artists)):
+            for _ in range(len(mpl_hist) - len(self.mpl_artists)):
                 artist = Rectangle((0, 0), 0, 0)
                 self.mpl_artists.append(artist)
                 self.axes.add_artist(artist)
@@ -95,7 +95,7 @@ class HistogramLayerArtist(MatplotlibLayerArtist):
 
         widths = np.diff(mpl_hist_edges)
 
-        bottom = 0 if not self._viewer_state.y_log else 1e-100
+        bottom = 1e-100 if self._viewer_state.y_log else 0
 
         for mpl_artist, x, y, dx in zip(self.mpl_artists, mpl_hist_edges[:-1], mpl_hist, widths):
             mpl_artist.set_width(dx)
@@ -120,10 +120,7 @@ class HistogramLayerArtist(MatplotlibLayerArtist):
 
         if self._viewer_state.y_log:
             keep = mpl_hist > 0
-            if np.any(keep):
-                self.state._y_min = mpl_hist[mpl_hist > 0].min() / 10
-            else:
-                self.state._y_min = 0
+            self.state._y_min = mpl_hist[mpl_hist > 0].min() / 10 if np.any(keep) else 0
         else:
             self.state._y_min = 0
 

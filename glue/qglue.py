@@ -53,7 +53,7 @@ def _parse_data_dict(data, label):
 
 @qglue_parser(np.recarray)
 def _parse_data_recarray(data, label):
-    kwargs = dict((n, data[n]) for n in data.dtype.names)
+    kwargs = {n: data[n] for n in data.dtype.names}
     return [Data(label=label, **kwargs)]
 
 
@@ -105,22 +105,22 @@ def parse_data(data, label):
     for item in qglue_parser:
 
         data_class = item.data_class
-        parser = item.parser
         if isinstance(data, data_class):
+            parser = item.parser
             try:
                 return parser(data, label)
             except Exception as e:
                 raise ValueError("Invalid format for data '%s'\n\n%s" %
                                  (label, e))
 
-    raise TypeError("Invalid data description: %s" % data)
+    raise TypeError(f"Invalid data description: {data}")
 
 
 def parse_links(dc, links):
     from glue.core.link_helpers import MultiLink
     from glue.core import ComponentLink
 
-    data = dict((d.label, d) for d in dc)
+    data = {d.label: d for d in dc}
     result = []
 
     def find_cid(s):
@@ -128,11 +128,11 @@ def parse_links(dc, links):
         d = data[dlabel]
         c = d.find_component_id(clabel)
         if c is None:
-            raise ValueError("Invalid link (no component named %s)" % s)
+            raise ValueError(f"Invalid link (no component named {s})")
         return c
 
     for link in links:
-        f, t = link[0:2]  # from and to component names
+        f, t = link[:2]
         u = u2 = None
         if len(link) >= 3:  # forward translation function
             u = link[2]
@@ -140,11 +140,7 @@ def parse_links(dc, links):
             u2 = link[3]
 
         # component names -> component IDs
-        if isinstance(f, str):
-            f = [find_cid(f)]
-        else:
-            f = [find_cid(item) for item in f]
-
+        f = [find_cid(f)] if isinstance(f, str) else [find_cid(item) for item in f]
         if isinstance(t, str):
             t = find_cid(t)
             result.append(ComponentLink(f, t, u))

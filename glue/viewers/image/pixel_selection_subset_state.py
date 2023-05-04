@@ -22,7 +22,10 @@ class PixelSubsetState(SliceSubsetState):
 
             if data is not self.reference_data:
                 pix_coord_out = self._to_linked_pixel_coords(data)
-                pix_coord_out = tuple([slice(None) if p is None else slice(p, p + 1) for p in pix_coord_out])
+                pix_coord_out = tuple(
+                    slice(None) if p is None else slice(p, p + 1)
+                    for p in pix_coord_out
+                )
                 return data[att, pix_coord_out]
 
         raise IncompatibleAttribute()
@@ -43,7 +46,9 @@ class PixelSubsetState(SliceSubsetState):
         check_dimensions = np.nonzero(np.any(matrix[:, correlated_dims], axis=1))[0]
 
         if np.array_equal(dimensions, check_dimensions):
-            pix_coord_in = tuple([slice(0, 1) if slc.start is None else slc for slc in self.slices])
+            pix_coord_in = tuple(
+                slice(0, 1) if slc.start is None else slc for slc in self.slices
+            )
             pix_coord_out = []
             for idim, pix_cid in enumerate(data.pixel_component_ids):
                 if idim in correlated_dims:

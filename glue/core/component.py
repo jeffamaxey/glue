@@ -59,10 +59,7 @@ class Component(object):
 
     @units.setter
     def units(self, value):
-        if value is None:
-            self._units = ''
-        else:
-            self._units = str(value)
+        self._units = '' if value is None else str(value)
 
     @property
     def data(self):
@@ -109,7 +106,7 @@ class Component(object):
         return False
 
     def __str__(self):
-        return "%s with shape %s" % (self.__class__.__name__, shape_to_string(self.shape))
+        return f"{self.__class__.__name__} with shape {shape_to_string(self.shape)}"
 
     def jitter(self, method=None):
         raise NotImplementedError
@@ -275,13 +272,14 @@ class CoordinateComponent(Component):
             if view is Ellipsis:
                 optimize_view = False
             else:
-                for v in view:
-                    if not np.isscalar(v) and not isinstance(v, slice):
-                        optimize_view = False
-                        break
-                else:
-                    optimize_view = True
-
+                optimize_view = next(
+                    (
+                        False
+                        for v in view
+                        if not np.isscalar(v) and not isinstance(v, slice)
+                    ),
+                    True,
+                )
             pix_coords = []
             dep_coords = dependent_axes(self._data.coords, self.axis)
 
@@ -333,11 +331,7 @@ class CoordinateComponent(Component):
             world_coords = broadcast_to(world_coords, tuple(final_shape))
 
             # We apply the view if we weren't able to optimize before
-            if optimize_view:
-                return world_coords
-            else:
-                return world_coords[view]
-
+            return world_coords if optimize_view else world_coords[view]
         else:
 
             slices = [slice(0, s, 1) for s in self.shape]
@@ -360,9 +354,7 @@ class CoordinateComponent(Component):
         return self._calculate(key)
 
     def __lt__(self, other):
-        if self.world == other.world:
-            return self.axis < other.axis
-        return self.world
+        return self.axis < other.axis if self.world == other.world else self.world
 
     def __gluestate__(self, context):
         return dict(axis=self.axis, world=self.world)
@@ -519,10 +511,7 @@ class DaskComponent(Component):
 
     @units.setter
     def units(self, value):
-        if value is None:
-            self._units = ''
-        else:
-            self._units = str(value)
+        self._units = '' if value is None else str(value)
 
     @property
     def data(self):

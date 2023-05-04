@@ -67,19 +67,16 @@ class IndexedData(BaseCartesianData, HubListener):
             raise ValueError("The 'indices' tuple should have length {0}"
                              .format(self._original_data.ndim))
 
+        changed = False
         # For now we require the indices to be in the same position, i.e. we
         # don't allow changes in dimensionality of the derived dataset.
         if hasattr(self, '_indices'):
-            changed = False
             for idim in range(self._original_data.ndim):
                 before, after = self._indices[idim], value[idim]
                 if type(before) != type(after):
                     raise TypeError("Can't change where the ``None`` values are in indices")
                 elif before != after:
                     changed = True
-        else:
-            changed = False
-
         self._indices = value
 
         # Compute a subset state that represents the indexing - this is used
@@ -114,10 +111,11 @@ class IndexedData(BaseCartesianData, HubListener):
 
     @property
     def shape(self):
-        shape = []
-        for idim in range(self._original_data.ndim):
-            if self.indices[idim] is None:
-                shape.append(self._original_data.shape[idim])
+        shape = [
+            self._original_data.shape[idim]
+            for idim in range(self._original_data.ndim)
+            if self.indices[idim] is None
+        ]
         return tuple(shape)
 
     @property
@@ -142,10 +140,7 @@ class IndexedData(BaseCartesianData, HubListener):
         idim_reduced = 0
         for idim in range(self._original_data.ndim):
             if original_view[idim] is None:
-                if view is None:
-                    original_view[idim] = slice(None)
-                else:
-                    original_view[idim] = view[idim_reduced]
+                original_view[idim] = slice(None) if view is None else view[idim_reduced]
                 idim_reduced += 1
         return tuple(original_view)
 

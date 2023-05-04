@@ -73,7 +73,7 @@ class IntOption(Option):
                 raise ValueError()
             value = int(value)
         except ValueError:
-            raise ValueError("%s must be an integer" % self.label)
+            raise ValueError(f"{self.label} must be an integer")
 
         if value < self.min:
             raise ValueError("%s must be >= %i" % (self.label, self.min))
@@ -131,7 +131,6 @@ class BoolOption(Option):
 
     def _validate(self, value):
         if value not in [True, False]:
-            raise ValueError(
-                "%s must be True or False: %s" % (self.label, value))
+            raise ValueError(f"{self.label} must be True or False: {value}")
 
         return value
